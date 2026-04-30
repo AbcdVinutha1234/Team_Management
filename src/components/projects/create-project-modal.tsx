@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Loader2 } from 'lucide-react';
 import { useFirestore, useUser } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -36,16 +36,21 @@ export function CreateProjectModal() {
     if (!db || !user) return;
     setIsSubmitting(true);
 
+    const projectId = `proj_${Date.now()}`;
     const projectData = {
+      id: projectId,
       name,
       description,
       status: 'Active',
-      ownerId: user.uid,
-      members: [user.uid],
-      createdAt: serverTimestamp(),
+      createdBy: user.uid,
+      members: {
+        [user.uid]: 'Admin'
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
-    addDoc(collection(db, 'projects'), projectData)
+    setDoc(doc(db, 'projects', projectId), projectData)
       .then(() => {
         toast({
           title: "Project created",
@@ -57,7 +62,7 @@ export function CreateProjectModal() {
       })
       .catch(async (error) => {
         const permissionError = new FirestorePermissionError({
-          path: 'projects',
+          path: `projects/${projectId}`,
           operation: 'create',
           requestResourceData: projectData,
         });

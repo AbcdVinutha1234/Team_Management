@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, useFirestore } from '@/firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
@@ -17,6 +17,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function SignupPage() {
+  const [isMounted, setIsMounted] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,6 +27,10 @@ export default function SignupPage() {
   const db = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,10 +44,14 @@ export default function SignupPage() {
       await updateProfile(user, { displayName: name });
 
       const userData = {
+        id: user.uid,
         name,
+        firstName: name.split(' ')[0] || name,
+        lastName: name.split(' ').slice(1).join(' ') || '',
         email,
         role: 'Member',
-        createdAt: serverTimestamp(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
       // Create user profile in Firestore
@@ -71,6 +80,8 @@ export default function SignupPage() {
       setIsLoading(false);
     }
   };
+
+  if (!isMounted) return null;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -125,7 +136,7 @@ export default function SignupPage() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4 pb-8">
-            <Button className="w-full rounded-xl h-12 font-bold text-lg group shadow-lg shadow-primary/20" disabled={isLoading}>
+            <Button type="submit" className="w-full rounded-xl h-12 font-bold text-lg group shadow-lg shadow-primary/20" disabled={isLoading}>
               {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : (
                 <>Get Started <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" /></>
               )}
