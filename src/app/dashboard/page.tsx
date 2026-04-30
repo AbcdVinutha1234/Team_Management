@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/layout/sidebar-nav";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { StatsGrid } from "@/components/dashboard/stats-grid";
@@ -9,6 +12,12 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function DashboardPage() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">

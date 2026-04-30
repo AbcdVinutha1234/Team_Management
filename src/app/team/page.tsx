@@ -83,8 +83,6 @@ export default function TeamPage() {
       u.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (!isMounted) return null;
-
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
