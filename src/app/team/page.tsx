@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/layout/sidebar-nav";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,7 @@ import { Mail, Shield, MoreVertical, Search, UserPlus, Loader2 } from "lucide-re
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { useFirestore, useCollection } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, doc, setDoc, deleteDoc, serverTimestamp, query, orderBy } from "firebase/firestore";
 import { User } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -48,12 +49,12 @@ export default function TeamPage() {
     setIsMounted(true);
   }, []);
 
-  const usersQuery = useMemo(() => {
+  const usersQuery = useMemoFirebase(() => {
     if (!isMounted || !db) return null;
     return query(collection(db, "users"), orderBy("name"));
   }, [isMounted, db]);
 
-  const { data: users, loading } = useCollection<User>(usersQuery);
+  const { data: users, isLoading: loading } = useCollection<User>(usersQuery);
 
   const handleRemoveMember = (id: string, name: string) => {
     if (!db) return;
@@ -116,6 +117,8 @@ export default function TeamPage() {
       u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (!isMounted) return null;
 
   return (
     <SidebarProvider>

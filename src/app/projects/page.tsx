@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CreateProjectModal } from "@/components/projects/create-project-modal";
-import { useFirestore, useCollection } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
 import { Project } from "@/lib/types";
 
@@ -23,8 +23,12 @@ export default function ProjectsPage() {
     setIsMounted(true);
   }, []);
 
-  const projectsQuery = isMounted && db ? query(collection(db, "projects"), orderBy("createdAt", "desc")) : null;
-  const { data: projects, isLoading } = useCollection<Project>(projectsQuery as any);
+  const projectsQuery = useMemoFirebase(() => {
+    if (!isMounted || !db) return null;
+    return query(collection(db, "projects"), orderBy("createdAt", "desc"));
+  }, [isMounted, db]);
+
+  const { data: projects, isLoading } = useCollection<Project>(projectsQuery);
 
   if (!isMounted) return null;
 

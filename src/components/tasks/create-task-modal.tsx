@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { 
   Dialog, 
   DialogContent, 
@@ -24,7 +24,7 @@ import {
 import { Sparkles, Loader2, Plus, Check } from "lucide-react";
 import { aiTaskDetailSuggestion } from "@/ai/flows/ai-task-detail-suggestion";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, useUser, useCollection } from "@/firebase";
+import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
 import { doc, setDoc, collection, query, where } from "firebase/firestore";
 import { Project } from "@/lib/types";
 import { errorEmitter } from "@/firebase/error-emitter";
@@ -45,12 +45,12 @@ export function CreateTaskModal({ children }: { children?: React.ReactNode }) {
   const { user } = useUser();
 
   // Load projects user is a member of for the selection dropdown
-  const projectsQuery = useMemo(() => {
+  const projectsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(collection(db, "projects"), where(`members.${user.uid}`, "!=", null));
-  }, [db, user]);
+  }, [db, user?.uid]);
 
-  const { data: projects } = useCollection<Project>(projectsQuery as any);
+  const { data: projects } = useCollection<Project>(projectsQuery);
 
   const handleAISuggestion = async () => {
     if (!title) {
