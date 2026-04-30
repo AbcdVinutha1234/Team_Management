@@ -1,12 +1,12 @@
-
 import { AppSidebar } from "@/components/layout/sidebar-nav";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { StatsGrid } from "@/components/dashboard/stats-grid";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Bell, Search } from "lucide-react";
+import { Plus, Bell, Search, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function DashboardPage() {
   return (
