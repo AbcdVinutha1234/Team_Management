@@ -8,39 +8,49 @@ import {
   Target 
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Task } from "@/lib/types";
 
-const stats = [
-  {
-    label: "Total Projects",
-    value: "12",
-    icon: Target,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-  },
-  {
-    label: "Tasks Done",
-    value: "48",
-    icon: CheckCircle2,
-    color: "text-green-600",
-    bgColor: "bg-green-100",
-  },
-  {
-    label: "In Progress",
-    value: "24",
-    icon: Clock,
-    color: "text-accent-foreground",
-    bgColor: "bg-accent/20",
-  },
-  {
-    label: "Overdue",
-    value: "3",
-    icon: AlertCircle,
-    color: "text-destructive",
-    bgColor: "bg-destructive/10",
-  },
-];
+interface StatsGridProps {
+  tasks: Task[];
+  projectsCount: number;
+}
 
-export function StatsGrid() {
+export function StatsGrid({ tasks, projectsCount }: StatsGridProps) {
+  const doneTasks = tasks.filter(t => t.status === 'Done').length;
+  const inProgressTasks = tasks.filter(t => t.status === 'In Progress').length;
+  const overdueTasks = tasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'Done').length;
+
+  const stats = [
+    {
+      label: "Total Projects",
+      value: projectsCount.toString(),
+      icon: Target,
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+    },
+    {
+      label: "Tasks Done",
+      value: doneTasks.toString(),
+      icon: CheckCircle2,
+      color: "text-green-600",
+      bgColor: "bg-green-100",
+    },
+    {
+      label: "In Progress",
+      value: inProgressTasks.toString(),
+      icon: Clock,
+      color: "text-accent-foreground",
+      bgColor: "bg-accent/20",
+    },
+    {
+      label: "Overdue",
+      value: overdueTasks.toString(),
+      icon: AlertCircle,
+      color: "text-destructive",
+      bgColor: "bg-destructive/10",
+    },
+  ];
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {stats.map((stat) => (

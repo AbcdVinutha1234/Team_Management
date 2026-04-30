@@ -14,7 +14,7 @@ import { CreateTaskModal } from "@/components/tasks/create-task-modal";
 import { CreateProjectModal } from "@/components/projects/create-project-modal";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where, orderBy, limit } from "firebase/firestore";
-import { Task } from "@/lib/types";
+import { Task, Project } from "@/lib/types";
 import Link from "next/link";
 
 export default function DashboardPage() {
@@ -32,12 +32,23 @@ export default function DashboardPage() {
       collection(db, "tasks"),
       where("assignedToId", "==", user.uid),
       where("status", "in", ["To Do", "In Progress"]),
-      orderBy("createdAt", "desc"),
       limit(5)
     );
   }, [db, user?.uid]);
 
-  const { data: tasks, isLoading: tasksLoading } = useCollection<Task>(priorityTasksQuery);
+  const allTasksQuery = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return query(collection(db, "tasks"), where("assignedToId", "==", user.uid));
+  }, [db, user?.uid]);
+
+  const projectsQuery = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return query(collection(db, "projects"), where(`members.${user.uid}`, "!=", null));
+  }, [db, user?.uid]);
+
+  const { data: priorityTasks, isLoading: tasksLoading } = useCollection<Task>(priorityTasksQuery);
+  const { data: allTasks } = useCollection<Task>(allTasksQuery);
+  const { data: projects } = useCollection<Project>(projectsQuery);
 
   if (!isMounted || isUserLoading) {
     return (
@@ -77,7 +88,7 @@ export default function DashboardPage() {
                 <h2 className="text-xl font-bold font-headline">Welcome back, {user?.displayName || user?.email?.split('@')[0] || 'User'}!</h2>
                 <p className="text-muted-foreground">Here is what's happening in your workspace today.</p>
               </div>
-              <StatsGrid />
+              <StatsGrid tasks={allTasks || []} projectsCount={projects?.length || 0} />
             </section>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -95,8 +106,8 @@ export default function DashboardPage() {
                         <div className="flex items-center justify-center py-10">
                           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                         </div>
-                      ) : tasks && tasks.length > 0 ? (
-                        tasks.map((task) => (
+                      ) : priorityTasks && priorityTasks.length > 0 ? (
+                        priorityTasks.map((task) => (
                           <div key={task.id} className="flex items-center justify-between p-4 rounded-xl hover:bg-muted/30 transition-colors border-b last:border-none">
                             <div className="flex items-center gap-4">
                               <div className={`w-1.5 h-10 rounded-full ${

@@ -5,13 +5,7 @@ service cloud.firestore {
 
     /**
      * WORKLINK SECURITY MODEL
-     * 
-     * Core Philosophy:
-     * Enforces RBAC and Ownership.
-     * Denormalization is used to avoid 'get()' calls.
      */
-
-    // --- Helper Functions ---
 
     function isSignedIn() {
       return request.auth != null;
@@ -19,10 +13,6 @@ service cloud.firestore {
 
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
-    }
-
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
     }
 
     function isMember(memberMap) {
@@ -33,54 +23,30 @@ service cloud.firestore {
       return isSignedIn() && memberMap != null && memberMap[request.auth.uid] == 'Admin';
     }
 
-    // --- Collection Rules ---
-
-    /**
-     * @description Users can see the whole team, but only edit their own profile.
-     */
     match /users/{userId} {
       allow get, list: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isExistingOwner(userId);
+      allow update: if isOwner(userId);
       allow delete: if false; 
     }
 
-    /**
-     * @description Projects are governed by the 'members' map.
-     */
     match /projects/{projectId} {
       allow list: if isSignedIn();
       allow get: if isMember(resource.data.members);
-      allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
-      allow update, delete: if resource != null && isAdmin(resource.data.members);
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin(resource.data.members);
 
       match /memberships/{mUserId} {
         allow get, list: if isSignedIn();
-        allow create, update, delete: if isSignedIn() && isAdmin(request.resource.data.projectMembers);
+        allow create, update, delete: if isAdmin(request.resource.data.projectMembers);
       }
     }
 
-    /**
-     * @description Tasks are secured by denormalized project roles.
-     */
     match /tasks/{taskId} {
       allow list: if isSignedIn();
-      
-      allow get: if isSignedIn() && (
-        isMember(resource.data.projectMembers) || 
-        resource.data.assignedToId == request.auth.uid
-      );
-      
-      allow create: if isSignedIn() && (
-        isMember(request.resource.data.projectMembers) && 
-        request.resource.data.createdBy == request.auth.uid
-      );
-      
-      allow update: if isSignedIn() && (
-        isMember(resource.data.projectMembers) || 
-        resource.data.assignedToId == request.auth.uid
-      );
-      
+      allow get: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
       allow delete: if isSignedIn() && (
         isAdmin(resource.data.projectMembers) || 
         resource.data.createdBy == request.auth.uid

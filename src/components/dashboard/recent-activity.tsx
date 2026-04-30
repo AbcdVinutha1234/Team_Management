@@ -3,56 +3,61 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-const activities = [
-  {
-    id: 1,
-    user: { name: "Sarah Chen", avatar: "https://picsum.photos/seed/user2/100/100" },
-    action: "completed task",
-    target: "Mobile Menu Design",
-    time: "2 hours ago",
-  },
-  {
-    id: 2,
-    user: { name: "James Wilson", avatar: "https://picsum.photos/seed/user3/100/100" },
-    action: "added comment to",
-    target: "Database Schema",
-    time: "4 hours ago",
-  },
-  {
-    id: 3,
-    user: { name: "Alex Rivera", avatar: "https://picsum.photos/seed/user1/100/100" },
-    action: "created project",
-    target: "Marketing Q2 Strategy",
-    time: "1 day ago",
-  },
-];
+import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, query, where, orderBy, limit } from "firebase/firestore";
+import { Task } from "@/lib/types";
+import { Loader2 } from "lucide-react";
 
 export function RecentActivity() {
+  const db = useFirestore();
+  const { user } = useUser();
+
+  const activityQuery = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return query(
+      collection(db, "tasks"),
+      where("assignedToId", "==", user.uid),
+      orderBy("createdAt", "desc"),
+      limit(5)
+    );
+  }, [db, user?.uid]);
+
+  const { data: tasks, isLoading } = useCollection<Task>(activityQuery);
+
   return (
     <Card className="border-none shadow-sm">
       <CardHeader>
         <CardTitle className="text-lg font-bold font-headline">Recent Activity</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {activities.map((activity) => (
-          <div key={activity.id} className="flex gap-4 items-start">
-            <Avatar className="h-9 w-9 border border-border">
-              <AvatarImage src={activity.user.avatar} />
-              <AvatarFallback>{activity.user.name[0]}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1 space-y-1">
-              <p className="text-sm leading-none">
-                <span className="font-semibold">{activity.user.name}</span>{" "}
-                <span className="text-muted-foreground">{activity.action}</span>{" "}
-                <span className="font-medium text-primary cursor-pointer hover:underline">
-                  {activity.target}
-                </span>
-              </p>
-              <p className="text-xs text-muted-foreground">{activity.time}</p>
-            </div>
+        {isLoading ? (
+          <div className="flex justify-center py-4">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        ))}
+        ) : tasks && tasks.length > 0 ? (
+          tasks.map((task) => (
+            <div key={task.id} className="flex gap-4 items-start">
+              <Avatar className="h-9 w-9 border border-border">
+                <AvatarImage src={`https://picsum.photos/seed/${task.assignedToId}/100/100`} />
+                <AvatarFallback>U</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 space-y-1">
+                <p className="text-sm leading-none">
+                  <span className="font-semibold">You</span>{" "}
+                  <span className="text-muted-foreground">updated task</span>{" "}
+                  <span className="font-medium text-primary cursor-pointer hover:underline">
+                    {task.title}
+                  </span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {task.createdAt ? new Date(task.createdAt).toLocaleDateString() : 'Recently'}
+                </p>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-4">No recent activity.</p>
+        )}
       </CardContent>
     </Card>
   );
