@@ -7,7 +7,6 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Calendar, Clock, CheckCircle2, Circle, Loader2 } from "lucide-react";
 import { CreateTaskModal } from "@/components/tasks/create-task-modal";
@@ -18,7 +17,7 @@ import { Task } from "@/lib/types";
 export default function TasksPage() {
   const [isMounted, setIsMounted] = useState(false);
   const db = useFirestore();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
 
   useEffect(() => {
     setIsMounted(true);
@@ -26,7 +25,6 @@ export default function TasksPage() {
 
   const tasksQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
-    // Fix: Use equality filter on assignedToId to avoid complex inequality issues with orderBy
     return query(
       collection(db, "tasks"), 
       where("assignedToId", "==", user.uid), 
@@ -36,7 +34,13 @@ export default function TasksPage() {
 
   const { data: tasks, isLoading } = useCollection<Task>(tasksQuery);
 
-  if (!isMounted) return null;
+  if (!isMounted || isUserLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <Loader2 className="h-10 w-10 animate-spin text-primary/40" />
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
