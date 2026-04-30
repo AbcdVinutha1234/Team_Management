@@ -26,7 +26,7 @@ import { aiTaskDetailSuggestion } from "@/ai/flows/ai-task-detail-suggestion";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
 import { doc, setDoc, collection, query, where } from "firebase/firestore";
-import { Project } from "@/lib/types";
+import { Project, Task } from "@/lib/types";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 
@@ -44,7 +44,6 @@ export function CreateTaskModal({ children }: { children?: React.ReactNode }) {
   const db = useFirestore();
   const { user } = useUser();
 
-  // Load projects user is a member of for the selection dropdown
   const projectsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return query(collection(db, "projects"), where(`members.${user.uid}`, "!=", null));
@@ -66,7 +65,7 @@ export function CreateTaskModal({ children }: { children?: React.ReactNode }) {
     try {
       const result = await aiTaskDetailSuggestion({ 
         taskTitle: title,
-        projectContext: "Task management for a professional team." 
+        projectContext: "Professional team workspace tasks." 
       });
       
       setDescription(result.detailedDescription);
@@ -77,10 +76,9 @@ export function CreateTaskModal({ children }: { children?: React.ReactNode }) {
         description: "Task description and subtasks have been generated.",
       });
     } catch (error) {
-      console.error(error);
       toast({
         title: "AI Failed",
-        description: "Could not generate task details. Please try again.",
+        description: "Could not generate task details.",
         variant: "destructive",
       });
     } finally {
@@ -104,7 +102,9 @@ export function CreateTaskModal({ children }: { children?: React.ReactNode }) {
     const taskId = `task_${Date.now()}`;
     const project = projects?.find(p => p.id === selectedProjectId);
     
-    // Crucial for security rules: denormalize project members
+    // Denormalize members for security rule check
+    const projectMembers = (project as any)?.members || { [user.uid]: 'Admin' };
+
     const taskData = {
       id: taskId,
       title,
@@ -112,10 +112,10 @@ export function CreateTaskModal({ children }: { children?: React.ReactNode }) {
       status: 'To Do',
       priority,
       projectId: selectedProjectId,
-      assignedToId: user.uid, // Default to self for now
+      assignedToId: user.uid,
       createdBy: user.uid,
-      projectMembers: (project as any)?.members || { [user.uid]: 'Admin' },
-      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Default 1 week out
+      projectMembers: projectMembers,
+      dueDate: new Date(Date.now() + 604800000).toISOString(), 
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       subtasks,
@@ -125,7 +125,7 @@ export function CreateTaskModal({ children }: { children?: React.ReactNode }) {
       .then(() => {
         toast({
           title: "Task created",
-          description: "Your new task has been added to the project.",
+          description: "Task successfully saved to Firestore.",
         });
         resetForm();
       })
@@ -189,9 +189,6 @@ export function CreateTaskModal({ children }: { children?: React.ReactNode }) {
                   {projects?.map((p) => (
                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                   ))}
-                  {(!projects || projects.length === 0) && (
-                    <SelectItem value="none" disabled>No projects found</SelectItem>
-                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -222,17 +219,13 @@ export function CreateTaskModal({ children }: { children?: React.ReactNode }) {
                 disabled={isGenerating}
                 className="text-xs h-8 rounded-full bg-primary/5 border-primary/20 text-primary hover:bg-primary hover:text-white transition-all gap-1.5"
               >
-                {isGenerating ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <Sparkles className="h-3 w-3" />
-                )}
+                {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
                 AI Auto-fill
               </Button>
             </div>
             <Textarea 
               id="description" 
-              placeholder="Describe what needs to be done..."
+              placeholder="Describe the task..."
               className="min-h-[120px] rounded-xl border-muted-foreground/20"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -240,14 +233,12 @@ export function CreateTaskModal({ children }: { children?: React.ReactNode }) {
           </div>
 
           {subtasks.length > 0 && (
-            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="space-y-2">
               <Label className="text-sm font-semibold">Suggested Subtasks</Label>
               <div className="space-y-2 bg-muted/30 p-4 rounded-2xl border border-dashed border-primary/20">
                 {subtasks.map((task, i) => (
-                  <div key={i} className="flex items-center gap-2 group">
-                    <div className="h-5 w-5 rounded border border-primary/30 flex items-center justify-center bg-white">
-                      <Check className="h-3 w-3 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
+                  <div key={i} className="flex items-center gap-2">
+                    <Check className="h-3 w-3 text-primary" />
                     <span className="text-xs text-muted-foreground">{task}</span>
                   </div>
                 ))}
@@ -255,7 +246,7 @@ export function CreateTaskModal({ children }: { children?: React.ReactNode }) {
             </div>
           )}
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter>
             <Button type="button" variant="ghost" onClick={resetForm} className="rounded-xl">Cancel</Button>
             <Button type="submit" className="rounded-xl px-8 font-bold" disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Create Task"}

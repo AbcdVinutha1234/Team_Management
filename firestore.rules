@@ -42,7 +42,7 @@ service cloud.firestore {
       allow get, list: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == userId;
       allow update: if isExistingOwner(userId);
-      allow delete: if false; // Only system admins via console
+      allow delete: if false; 
     }
 
     /**
@@ -64,7 +64,6 @@ service cloud.firestore {
      * @description Tasks are secured by denormalized project roles.
      */
     match /tasks/{taskId} {
-      // Allow listing tasks. The query must be filtered by assignedToId or project membership.
       allow list: if isSignedIn();
       
       allow get: if isSignedIn() && (
