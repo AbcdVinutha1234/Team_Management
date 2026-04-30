@@ -1,65 +1,281 @@
-
 {
   "entities": {
     "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
-      "description": "User profile information",
       "type": "object",
+      "description": "Represents a user within the WorkLink application. Assumes authentication details (like passwords) are managed by an external system.",
       "properties": {
-        "name": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
-        "role": { "type": "string", "enum": ["Admin", "Member"] },
-        "avatarUrl": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address, used for login and notifications. Must be unique across all users.",
+          "format": "email"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The first name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The last name of the user."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user account was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user account was last updated.",
+          "format": "date-time"
+        }
       },
-      "required": ["name", "email", "role"]
+      "required": [
+        "id",
+        "email",
+        "firstName",
+        "lastName",
+        "createdAt"
+      ]
     },
     "Project": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Project",
-      "description": "Team project details",
       "type": "object",
+      "description": "Represents a project, a container for tasks and associated team members.",
       "properties": {
-        "name": { "type": "string" },
-        "description": { "type": "string" },
-        "status": { "type": "string", "enum": ["Active", "On Hold", "Completed"] },
-        "ownerId": { "type": "string" },
-        "members": { "type": "array", "items": { "type": "string" } },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Project entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the project."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the project's scope and goals."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current operational status of the project (e.g., 'Active', 'Completed', 'On Hold', 'Archived')."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The planned start date for the project.",
+          "format": "date"
+        },
+        "dueDate": {
+          "type": "string",
+          "description": "The planned due date for the project.",
+          "format": "date"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the project was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the project was last updated.",
+          "format": "date-time"
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "Reference to the User who created this project. (Relationship: User 1:N Project)"
+        }
       },
-      "required": ["name", "status", "ownerId", "members"]
+      "required": [
+        "id",
+        "name",
+        "description",
+        "status",
+        "createdAt",
+        "createdBy"
+      ]
     },
     "Task": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Task",
-      "description": "Individual project task",
       "type": "object",
+      "description": "Represents a specific task within a project, assigned to a team member.",
       "properties": {
-        "projectId": { "type": "string" },
-        "title": { "type": "string" },
-        "description": { "type": "string" },
-        "status": { "type": "string", "enum": ["To Do", "In Progress", "Done"] },
-        "assigneeId": { "type": "string" },
-        "dueDate": { "type": "string", "format": "date" },
-        "subtasks": { "type": "array", "items": { "type": "string" } },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Task entity."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title or brief summary of the task."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the task, potentially augmented by AI suggestions."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the task (e.g., 'To Do', 'In Progress', 'Done', 'Blocked', 'Review')."
+        },
+        "priority": {
+          "type": "string",
+          "description": "The priority level of the task (e.g., 'Low', 'Medium', 'High', 'Critical')."
+        },
+        "dueDate": {
+          "type": "string",
+          "description": "The planned due date for completing the task.",
+          "format": "date"
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Reference to the Project this task belongs to. (Relationship: Project 1:N Task)"
+        },
+        "assignedToId": {
+          "type": "string",
+          "description": "Reference to the User to whom this task is assigned. (Relationship: User 1:N Task)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the task was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the task was last updated.",
+          "format": "date-time"
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "Reference to the User who created this task. (Relationship: User 1:N Task)"
+        }
       },
-      "required": ["projectId", "title", "status", "assigneeId", "dueDate"]
+      "required": [
+        "id",
+        "title",
+        "status",
+        "projectId",
+        "assignedToId",
+        "createdAt",
+        "createdBy"
+      ]
+    },
+    "ProjectMembership": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ProjectMembership",
+      "type": "object",
+      "description": "Links a user to a specific project and defines their role within that project, enabling role-based access control per project.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ProjectMembership entity."
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Reference to the Project the user is a member of. (Relationship: Project N:N User via ProjectMembership)"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who is a member of the project. (Relationship: User N:N Project via ProjectMembership)"
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user within this specific project (e.g., 'Admin', 'Member')."
+        },
+        "joinedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user joined this project.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "projectId",
+        "userId",
+        "role",
+        "joinedAt"
+      ]
     }
   },
   "auth": {
-    "providers": ["email"]
+    "providers": [
+      "password",
+      "anonymous"
+    ]
   },
   "firestore": {
-    "/users/{userId}": {
-      "schema": "User",
-      "description": "User profiles"
-    },
-    "/projects/{projectId}": {
-      "schema": "Project",
-      "description": "Team projects"
-    },
-    "/projects/{projectId}/tasks/{taskId}": {
-      "schema": "Task",
-      "description": "Tasks within a project"
-    }
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores individual user profiles. Access is restricted to the user whose ID matches the document ID (path-based ownership). No denormalized authorization fields are required for this collection's own security rules, as 'userId' in the path corresponds to 'request.auth.uid'.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user, corresponding to their Firebase Authentication UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/projects/{projectId}",
+        "definition": {
+          "entityName": "Project",
+          "schema": {
+            "$ref": "#/backend/entities/Project"
+          },
+          "description": "Stores details for each project. This document includes a 'members' map (e.g., {uid1: 'Admin', uid2: 'Member'}) which serves as the primary authorization context for the project. This denormalized map enables secure list operations and avoids 'get()' calls in rules when checking project-level access.",
+          "params": [
+            {
+              "name": "projectId",
+              "description": "The unique identifier for the project."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/tasks/{taskId}",
+        "definition": {
+          "entityName": "Task",
+          "schema": {
+            "$ref": "#/backend/entities/Task"
+          },
+          "description": "Stores individual tasks. Each task document includes its 'projectId' and a **denormalized 'projectMembers' map** (a copy of the parent project's 'members' map). This denormalization is CRITICAL for authorization independence, allowing security rules to verify project-level roles without 'get()' operations. Also includes 'assignedToId' for task-specific assignment rules.",
+          "params": [
+            {
+              "name": "taskId",
+              "description": "The unique identifier for the task."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/projects/{projectId}/memberships/{userId}",
+        "definition": {
+          "entityName": "ProjectMembership",
+          "schema": {
+            "$ref": "#/backend/entities/ProjectMembership"
+          },
+          "description": "Represents a user's membership and role within a specific project. This document **includes a denormalized 'projectMembers' map** (a copy of its parent project's 'members' map) to ensure Authorization Independence. This allows security rules to manage memberships (create, update, delete) without 'get()' operations on the parent project document.",
+          "params": [
+            {
+              "name": "projectId",
+              "description": "The unique identifier of the project this membership belongs to."
+            },
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who is a member of this project."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The recommended Firestore structure prioritizes **Authorization Independence** and **Clarity of Intent** by extensively utilizing denormalization for authorization contexts. This approach ensures that security rules can evaluate access without relying on `get()` operations, thereby supporting atomic transactions, simplifying rule logic, and improving debuggability. All authorization data (like project membership roles) is embedded directly within the documents that require it. This strategy, while increasing data redundancy and update complexity across related documents, is critical for achieving robust, performant, and easily auditable security rules.\n\n**Key Design Principles in Action:**\n\n1.  **Authorization Independence:** To prevent `get()` calls in rules, the `members` map from a `Project` document is denormalized into every `Task` document associated with that project, and also into every `ProjectMembership` document within that project's subcollection. This allows rules for `Task` and `ProjectMembership` to directly check `resource.data.projectMembers[request.auth.uid]` for authorization without querying the parent `Project` document.\n2.  **Clarity of Intent:** Authorization fields like `createdBy`, `assignedToId`, `members`, and `projectMembers` are explicitly present in the relevant documents, making access control logic transparent.\n3.  **DBAC (Database Access Control):** Roles (`Admin`, `Member`) are stored directly in the `members` map within `Project` documents and denormalized into `Task` and `ProjectMembership` documents. `request.auth.uid` is the sole identifier for authorization checks.\n4.  **QAPs (Queries Are Not Filters):**\n    *   **User's Projects:** Users can securely list projects they are members of by querying the `/projects` collection with `where('members.' + request.auth.uid, '!=', null)`. This is a Queriable Access Pattern.\n    *   **User's Assigned Tasks:** Users can list all tasks assigned to them across all projects by querying the `/tasks` collection with `where('assignedToId', '==', request.auth.uid)`. This is a Queriable Access Pattern.\n    *   **Project's Tasks:** To view tasks for a specific project, a query like `where('projectId', '==', '{projectId}').where('projectMembers.' + request.auth.uid, '!=', null)` can be used on the `/tasks` collection, or simply by querying the subcollection `/projects/{projectId}/tasks`. The latter also benefits from denormalized `projectMembers`.\n    *   **Project's Members:** Project admins can list all members of their project by querying `/projects/{projectId}/memberships`. This is a Queriable Access Pattern.\n5.  **Structural Segregation:** Each collection (`/users`, `/projects`, `/tasks`, `/projects/{projectId}/memberships`) maintains a homogeneous security posture. For instance, all documents in `/users` follow path-based ownership, while all documents in `/projects` (and their associated tasks/memberships) adhere to the collaborative access model defined by the denormalized `members` map.\n\n**Data Denormalization Rationale:**\n\n*   **User:** Stored in `/users/{userId}`. Access is based on `userId` matching `request.auth.uid`, adhering to private data access modeling.\n*   **Project:** Stored in `/projects/{projectId}`. Includes a `members` map (`{userId: role}`) which is the primary source of truth for project-level roles. The `createdBy` field identifies the project creator.\n*   **Task:** Stored in `/tasks/{taskId}` as a top-level collection to facilitate flexible querying for personalized dashboards (e.g., 'my assigned tasks'). Each `Task` document **critically includes a denormalized `projectMembers` map** (a copy of its parent project's `members` map) to allow rules to determine project access without `get()` calls. It also includes `projectId` (for context), `assignedToId`, and `createdBy`.\n*   **ProjectMembership:** Stored as a subcollection `/projects/{projectId}/memberships/{userId}`. This path directly reflects the relationship of a user to a specific project. Each `ProjectMembership` document **also includes a denormalized `projectMembers` map** (a copy of its parent `Project`'s `members` map) to enable authorization independence. This ensures that rules for managing individual memberships can be evaluated locally.\n\nThis structure ensures maximum security rule simplicity and atomic operation support, at the cost of managing denormalized data consistency in application-level logic (e.g., using Cloud Functions to update `projectMembers` in tasks and memberships whenever a project's `members` map changes)."
   }
 }
