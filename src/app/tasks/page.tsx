@@ -1,4 +1,6 @@
+"use client";
 
+import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/layout/sidebar-nav";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
@@ -11,6 +13,12 @@ import { CreateTaskModal } from "@/components/tasks/create-task-modal";
 import { MOCK_TASKS } from "@/lib/mock-data";
 
 export default function TasksPage() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
@@ -78,7 +86,7 @@ export default function TasksPage() {
                             <div className="flex items-center gap-2">
                               <Calendar className="h-4 w-4 text-muted-foreground" />
                               <span className={`text-sm font-medium ${new Date(task.dueDate) < new Date() ? 'text-destructive font-bold' : ''}`}>
-                                {new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                {isMounted ? new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '...'}
                               </span>
                             </div>
                             
@@ -117,7 +125,6 @@ export default function TasksPage() {
   );
 }
 
-// Internal icon for generic usage
 function Target({ className }: { className?: string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>

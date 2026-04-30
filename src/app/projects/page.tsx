@@ -1,15 +1,23 @@
+"use client";
 
+import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/layout/sidebar-nav";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, MoreHorizontal, Users, Calendar, Filter, ChevronRight } from "lucide-react";
+import { Plus, MoreHorizontal, Calendar, Filter, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MOCK_PROJECTS } from "@/lib/mock-data";
 
 export default function ProjectsPage() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
@@ -79,7 +87,7 @@ export default function ProjectsPage() {
                       </div>
                       <div className="flex items-center text-muted-foreground text-xs gap-1.5 font-medium">
                         <Calendar className="h-3.5 w-3.5" />
-                        <span>Created {new Date(project.createdAt).toLocaleDateString()}</span>
+                        <span>Created {isMounted ? new Date(project.createdAt).toLocaleDateString() : '...'}</span>
                       </div>
                     </div>
                   </CardContent>
