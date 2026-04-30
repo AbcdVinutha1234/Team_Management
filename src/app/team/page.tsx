@@ -206,7 +206,7 @@ export default function TeamPage() {
                     </div>
 
                     <div className="pt-4 border-t flex gap-2">
-                      <Button variant="outline" className="flex-1 rounded-xl text-xs font-bold h-9">
+                      <Button variant="outline" onClick={() => toast({ title: "Profile view", description: `Viewing ${user.name}'s profile.` })} className="flex-1 rounded-xl text-xs font-bold h-9">
                         View Profile
                       </Button>
                       <Button

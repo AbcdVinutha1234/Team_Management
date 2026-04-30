@@ -7,16 +7,26 @@ import { StatsGrid } from "@/components/dashboard/stats-grid";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Bell, Search, Sparkles } from "lucide-react";
+import { Bell, Search, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { CreateTaskModal } from "@/components/tasks/create-task-modal";
+import { useToast } from "@/hooks/use-toast";
 
 export default function DashboardPage() {
   const [isMounted, setIsMounted] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  const handleCreateProject = () => {
+    toast({
+      title: "Action captured",
+      description: "Project creation feature is coming in the next update!",
+    });
+  };
 
   return (
     <SidebarProvider>
@@ -38,9 +48,7 @@ export default function DashboardPage() {
                 <Bell className="h-5 w-5" />
                 <span className="absolute top-2 right-2.5 w-2 h-2 bg-accent rounded-full border-2 border-background" />
               </Button>
-              <Button className="rounded-xl px-5 font-semibold shadow-md shadow-primary/20">
-                <Plus className="mr-2 h-4 w-4" /> New Task
-              </Button>
+              <CreateTaskModal />
             </div>
           </header>
           
@@ -95,7 +103,7 @@ export default function DashboardPage() {
                   <div className="relative z-10 space-y-4">
                     <h3 className="text-primary-foreground text-2xl font-bold font-headline">Ready for your next project?</h3>
                     <p className="text-primary-foreground/80 max-w-md">Collaborate with your team members in real-time and track progress effortlessly.</p>
-                    <Button variant="secondary" className="font-bold rounded-xl px-6">Create New Project</Button>
+                    <Button variant="secondary" onClick={handleCreateProject} className="font-bold rounded-xl px-6">Create New Project</Button>
                   </div>
                   <div className="absolute top-0 right-0 h-full w-1/3 bg-accent opacity-20 skew-x-12 translate-x-1/2" />
                   <Sparkles className="absolute bottom-4 right-8 h-24 w-24 text-primary-foreground/10" />
@@ -122,7 +130,7 @@ export default function DashboardPage() {
                         <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
                       </div>
                     ))}
-                    <Button variant="outline" className="w-full rounded-xl mt-2 border-dashed">
+                    <Button variant="outline" onClick={() => toast({ title: "Invite link copied", description: "Share the link with your teammate to join." })} className="w-full rounded-xl mt-2 border-dashed">
                       Invite Member
                     </Button>
                   </CardContent>
