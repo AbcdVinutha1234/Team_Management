@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { AppSidebar } from "@/components/layout/sidebar-nav";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Mail, Shield, MoreVertical, Search, UserPlus } from "lucide-react";
+import { Mail, Shield, MoreVertical, Search, UserPlus, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { MOCK_USERS } from "@/lib/mock-data";
+import { useFirestore, useCollection } from "@/firebase";
+import { collection, doc, setDoc, deleteDoc, serverTimestamp, query, orderBy } from "firebase/firestore";
 import { User } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -28,56 +29,89 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function TeamPage() {
   const [isMounted, setIsMounted] = useState(false);
-  const [users, setUsers] = useState<User[]>(MOCK_USERS);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
+  const db = useFirestore();
 
-  // For the Invite Modal
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [newUserName, setNewUserName] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserRole, setNewUserRole] = useState<"Admin" | "Member">("Member");
+  const [isInviting, setIsInviting] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
+  const usersQuery = useMemo(() => {
+    if (!isMounted || !db) return null;
+    return query(collection(db, "users"), orderBy("name"));
+  }, [isMounted, db]);
+
+  const { data: users, loading } = useCollection<User>(usersQuery);
+
   const handleRemoveMember = (id: string, name: string) => {
-    setUsers((prev) => prev.filter((u) => u.id !== id));
-    toast({
-      title: "Member removed",
-      description: `${name} has been removed from the team.`,
-    });
+    if (!db) return;
+    deleteDoc(doc(db, 'users', id))
+      .then(() => {
+        toast({
+          title: "Member removed",
+          description: `${name} has been removed from the team.`,
+        });
+      })
+      .catch(async () => {
+        const permissionError = new FirestorePermissionError({
+          path: `users/${id}`,
+          operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
   };
 
   const handleInviteMember = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newUserName || !newUserEmail) return;
+    if (!newUserName || !newUserEmail || !db) return;
+    setIsInviting(true);
 
-    const newUser: User = {
-      id: `u${Date.now()}`,
+    const inviteId = `inv_${Date.now()}`;
+    const userData = {
       name: newUserName,
       email: newUserEmail,
       role: newUserRole,
-      avatarUrl: `https://picsum.photos/seed/${Date.now()}/100/100`,
+      avatarUrl: `https://picsum.photos/seed/${inviteId}/100/100`,
+      createdAt: serverTimestamp(),
     };
 
-    setUsers((prev) => [...prev, newUser]);
-    setIsInviteModalOpen(false);
-    setNewUserName("");
-    setNewUserEmail("");
-    setNewUserRole("Member");
-
-    toast({
-      title: "Invitation sent",
-      description: `${newUserName} has been added to the team.`,
-    });
+    setDoc(doc(db, 'users', inviteId), userData)
+      .then(() => {
+        toast({
+          title: "Invitation recorded",
+          description: `User ${newUserName} added to workspace. Note: Email delivery is not configured.`,
+        });
+        setIsInviteModalOpen(false);
+        setNewUserName("");
+        setNewUserEmail("");
+        setNewUserRole("Member");
+      })
+      .catch(async () => {
+        const permissionError = new FirestorePermissionError({
+          path: `users/${inviteId}`,
+          operation: 'create',
+          requestResourceData: userData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      })
+      .finally(() => {
+        setIsInviting(false);
+      });
   };
 
-  const filteredUsers = users.filter(
+  const filteredUsers = users?.filter(
     (u) =>
       u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.email.toLowerCase().includes(searchQuery.toLowerCase())
@@ -91,7 +125,7 @@ export default function TeamPage() {
           <header className="flex h-20 shrink-0 items-center justify-between px-8 bg-background border-b sticky top-0 z-10">
             <div className="flex items-center gap-4">
               <SidebarTrigger />
-              <h1 className="text-2xl font-bold font-headline tracking-tight">Team Members</h1>
+              <h1 className="text-2xl font-bold font-headline tracking-tight text-primary">Team Management</h1>
             </div>
 
             <div className="flex items-center gap-3">
@@ -101,9 +135,9 @@ export default function TeamPage() {
                     <UserPlus className="mr-2 h-4 w-4" /> Invite Member
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px] rounded-3xl">
+                <DialogContent className="sm:max-w-[425px] rounded-3xl p-8">
                   <DialogHeader>
-                    <DialogTitle className="text-xl font-bold font-headline">Invite New Member</DialogTitle>
+                    <DialogTitle className="text-xl font-bold font-headline">Invite Collaborator</DialogTitle>
                   </DialogHeader>
                   <form onSubmit={handleInviteMember} className="space-y-6 py-4">
                     <div className="space-y-2">
@@ -114,7 +148,7 @@ export default function TeamPage() {
                         value={newUserName}
                         onChange={(e) => setNewUserName(e.target.value)}
                         required
-                        className="rounded-xl"
+                        className="rounded-xl border-muted-foreground/20"
                       />
                     </div>
                     <div className="space-y-2">
@@ -126,7 +160,7 @@ export default function TeamPage() {
                         value={newUserEmail}
                         onChange={(e) => setNewUserEmail(e.target.value)}
                         required
-                        className="rounded-xl"
+                        className="rounded-xl border-muted-foreground/20"
                       />
                     </div>
                     <div className="space-y-2">
@@ -135,7 +169,7 @@ export default function TeamPage() {
                         value={newUserRole}
                         onValueChange={(value: "Admin" | "Member") => setNewUserRole(value)}
                       >
-                        <SelectTrigger className="rounded-xl">
+                        <SelectTrigger className="rounded-xl border-muted-foreground/20">
                           <SelectValue placeholder="Select a role" />
                         </SelectTrigger>
                         <SelectContent>
@@ -145,8 +179,8 @@ export default function TeamPage() {
                       </Select>
                     </div>
                     <DialogFooter>
-                      <Button type="submit" className="w-full rounded-xl font-bold">
-                        Send Invitation
+                      <Button type="submit" disabled={isInviting} className="w-full rounded-xl font-bold shadow-lg shadow-primary/20">
+                        {isInviting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Invite Member"}
                       </Button>
                     </DialogFooter>
                   </form>
@@ -166,74 +200,75 @@ export default function TeamPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="rounded-full bg-white px-4 py-1 border-none shadow-sm text-xs font-bold uppercase tracking-wider">
-                  Total: {users.length} Members
-                </Badge>
+            </div>
+
+            {loading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-10 w-10 animate-spin text-primary/40" />
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredUsers.map((user) => (
-                <Card key={user.id} className="border-none shadow-sm hover:shadow-md transition-all duration-300 rounded-3xl overflow-hidden group">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <div className="flex items-center gap-4">
-                      <Avatar className="h-12 w-12 border-2 border-primary/10 shadow-sm">
-                        <AvatarImage src={user.avatarUrl} alt={user.name} />
-                        <AvatarFallback>{user.name[0]}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <CardTitle className="text-lg font-bold font-headline">{user.name}</CardTitle>
-                        <Badge variant={user.role === 'Admin' ? 'default' : 'secondary'} className="text-[10px] uppercase font-bold px-2 py-0 mt-1">
-                          {user.role}
-                        </Badge>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredUsers?.map((user) => (
+                  <Card key={user.id} className="border-none shadow-sm hover:shadow-md transition-all duration-300 rounded-3xl overflow-hidden group bg-white">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                      <div className="flex items-center gap-4">
+                        <Avatar className="h-12 w-12 border-2 border-primary/10 shadow-sm">
+                          <AvatarImage src={user.avatarUrl} alt={user.name} />
+                          <AvatarFallback>{user.name[0]}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <CardTitle className="text-lg font-bold font-headline">{user.name}</CardTitle>
+                          <Badge variant={user.role === 'Admin' ? 'default' : 'secondary'} className="text-[10px] uppercase font-bold mt-1">
+                            {user.role}
+                          </Badge>
+                        </div>
                       </div>
-                    </div>
-                    <Button variant="ghost" size="icon" className="rounded-full">
-                      <MoreVertical className="h-5 w-5 text-muted-foreground" />
-                    </Button>
-                  </CardHeader>
-                  <CardContent className="pt-4 space-y-4">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                        <Mail className="h-4 w-4 text-primary/60" />
-                        <span className="truncate">{user.email}</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                        <Shield className="h-4 w-4 text-primary/60" />
-                        <span>{user.role === 'Admin' ? 'Full Access' : 'Limited Access'}</span>
-                      </div>
-                    </div>
-
-                    <div className="pt-4 border-t flex gap-2">
-                      <Button variant="outline" onClick={() => toast({ title: "Profile view", description: `Viewing ${user.name}'s profile.` })} className="flex-1 rounded-xl text-xs font-bold h-9">
-                        View Profile
+                      <Button variant="ghost" size="icon" className="rounded-full">
+                        <MoreVertical className="h-5 w-5 text-muted-foreground" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        onClick={() => handleRemoveMember(user.id, user.name)}
-                        className="rounded-xl text-xs font-bold h-9 text-destructive hover:bg-destructive/5 hover:text-destructive"
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardHeader>
+                    <CardContent className="pt-4 space-y-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground bg-muted/30 p-2 rounded-xl">
+                          <Mail className="h-4 w-4 text-primary" />
+                          <span className="truncate font-medium">{user.email}</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                          <Shield className="h-4 w-4 text-primary/60" />
+                          <span>{user.role === 'Admin' ? 'Admin Access' : 'Limited Access'}</span>
+                        </div>
+                      </div>
 
-              <button
-                onClick={() => setIsInviteModalOpen(true)}
-                className="border-2 border-dashed border-muted-foreground/20 rounded-3xl p-8 flex flex-col items-center justify-center gap-4 text-muted-foreground hover:bg-muted/30 hover:border-primary/40 transition-all group min-h-[220px]"
-              >
-                <div className="p-4 bg-muted/50 rounded-2xl group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                  <Plus className="h-8 w-8" />
-                </div>
-                <div className="text-center">
-                  <p className="font-bold text-lg">Add Collaborator</p>
-                  <p className="text-sm">Grow your project team</p>
-                </div>
-              </button>
-            </div>
+                      <div className="pt-4 border-t flex gap-2">
+                        <Button variant="outline" className="flex-1 rounded-xl text-xs font-bold h-9 border-primary/20 hover:bg-primary/5">
+                          View Profile
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          onClick={() => handleRemoveMember(user.id, user.name)}
+                          className="rounded-xl text-xs font-bold h-9 text-destructive hover:bg-destructive/5"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+
+                <button
+                  onClick={() => setIsInviteModalOpen(true)}
+                  className="border-2 border-dashed border-muted-foreground/20 rounded-3xl p-8 flex flex-col items-center justify-center gap-4 text-muted-foreground hover:bg-primary/5 hover:border-primary/30 transition-all group min-h-[220px] bg-white/50"
+                >
+                  <div className="p-4 bg-primary/5 rounded-2xl group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                    <UserPlus className="h-8 w-8" />
+                  </div>
+                  <div className="text-center">
+                    <p className="font-bold text-lg text-primary/80">Add Collaborator</p>
+                    <p className="text-sm">Click to invite a member</p>
+                  </div>
+                </button>
+              </div>
+            )}
           </main>
         </SidebarInset>
       </div>
