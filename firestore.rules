@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -32,6 +33,14 @@ service cloud.firestore {
       return isSignedIn() && memberMap != null && memberMap[request.auth.uid] == 'Admin';
     }
 
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isSystemAdmin() {
+      return isSignedIn() && getUserData().role == 'Admin';
+    }
+
     // --- Collection Rules ---
 
     /**
@@ -39,9 +48,9 @@ service cloud.firestore {
      */
     match /users/{userId} {
       allow get, list: if isSignedIn();
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isExistingOwner(userId);
-      allow delete: if isAdmin(resource.data.role); // Only admins can delete users
+      allow create: if isSignedIn() && (request.auth.uid == userId || isSystemAdmin());
+      allow update: if isExistingOwner(userId) || isSystemAdmin();
+      allow delete: if isSystemAdmin();
     }
 
     /**
@@ -54,7 +63,7 @@ service cloud.firestore {
       allow update, delete: if resource != null && isAdmin(resource.data.members);
 
       match /memberships/{mUserId} {
-        allow get, list: if isSignedIn(); // Allow listing members for project context
+        allow get, list: if isSignedIn();
         allow create, update, delete: if isSignedIn() && isAdmin(request.resource.data.projectMembers);
       }
     }
@@ -63,7 +72,7 @@ service cloud.firestore {
      * @description Tasks are secured by denormalized project roles.
      */
     match /tasks/{taskId} {
-      // Explicitly allow list for signed in users to enable membership-filtered queries
+      // Allow list for signed-in users so they can filter by assignment or project
       allow list: if isSignedIn();
       
       allow get: if isSignedIn() && (

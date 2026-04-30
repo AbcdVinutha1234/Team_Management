@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -27,11 +28,12 @@ export default function DashboardPage() {
 
   const priorityTasksQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
+    // Fix: Use equality filter for assignment and 'in' for status to avoid multiple '!=' filters
+    // This also allows ordering by createdAt without violating Firestore inequality rules
     return query(
       collection(db, "tasks"),
-      where(`projectMembers.${user.uid}`, "!=", null),
-      where("status", "!=", "Done"),
-      orderBy("status"),
+      where("assignedToId", "==", user.uid),
+      where("status", "in", ["To Do", "In Progress"]),
       orderBy("createdAt", "desc"),
       limit(5)
     );

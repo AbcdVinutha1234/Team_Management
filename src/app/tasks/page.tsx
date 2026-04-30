@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -25,8 +26,12 @@ export default function TasksPage() {
 
   const tasksQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
-    // Query tasks where user is a project member
-    return query(collection(db, "tasks"), where(`projectMembers.${user.uid}`, "!=", null), orderBy("createdAt", "desc"));
+    // Fix: Use equality filter on assignedToId to avoid complex inequality issues with orderBy
+    return query(
+      collection(db, "tasks"), 
+      where("assignedToId", "==", user.uid), 
+      orderBy("createdAt", "desc")
+    );
   }, [db, user?.uid]);
 
   const { data: tasks, isLoading } = useCollection<Task>(tasksQuery);
