@@ -25,11 +25,11 @@ service cloud.firestore {
     }
 
     function isMember(memberMap) {
-      return isSignedIn() && memberMap[request.auth.uid] != null;
+      return isSignedIn() && memberMap != null && memberMap[request.auth.uid] != null;
     }
 
     function isAdmin(memberMap) {
-      return isSignedIn() && memberMap[request.auth.uid] == 'Admin';
+      return isSignedIn() && memberMap != null && memberMap[request.auth.uid] == 'Admin';
     }
 
     // --- Collection Rules ---
@@ -39,9 +39,9 @@ service cloud.firestore {
      */
     match /users/{userId} {
       allow get, list: if isSignedIn();
-      allow create: if isSignedIn(); // Allow signup and invitations
+      allow create: if isSignedIn() && request.auth.uid == userId;
       allow update: if isExistingOwner(userId);
-      allow delete: if isSignedIn(); // Allow workspace management
+      allow delete: if isAdmin(resource.data.role); // Only admins can delete users
     }
 
     /**
@@ -50,11 +50,11 @@ service cloud.firestore {
     match /projects/{projectId} {
       allow get: if isMember(resource.data.members);
       allow list: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid && request.resource.data.id == projectId;
+      allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
       allow update, delete: if resource != null && isAdmin(resource.data.members);
 
       match /memberships/{mUserId} {
-        allow get, list: if isMember(resource.data.projectMembers);
+        allow get, list: if isSignedIn(); // Allow listing members for project context
         allow create, update, delete: if isSignedIn() && isAdmin(request.resource.data.projectMembers);
       }
     }
@@ -63,11 +63,28 @@ service cloud.firestore {
      * @description Tasks are secured by denormalized project roles.
      */
     match /tasks/{taskId} {
-      allow get: if isMember(resource.data.projectMembers) || resource.data.assignedToId == request.auth.uid;
+      // Explicitly allow list for signed in users to enable membership-filtered queries
       allow list: if isSignedIn();
-      allow create: if isSignedIn() && isMember(request.resource.data.projectMembers) && request.resource.data.createdBy == request.auth.uid;
-      allow update: if resource != null && (isMember(resource.data.projectMembers) || resource.data.assignedToId == request.auth.uid);
-      allow delete: if resource != null && (isAdmin(resource.data.projectMembers) || resource.data.createdBy == request.auth.uid);
+      
+      allow get: if isSignedIn() && (
+        isMember(resource.data.projectMembers) || 
+        resource.data.assignedToId == request.auth.uid
+      );
+      
+      allow create: if isSignedIn() && (
+        isMember(request.resource.data.projectMembers) && 
+        request.resource.data.createdBy == request.auth.uid
+      );
+      
+      allow update: if resource != null && (
+        isMember(resource.data.projectMembers) || 
+        resource.data.assignedToId == request.auth.uid
+      );
+      
+      allow delete: if resource != null && (
+        isAdmin(resource.data.projectMembers) || 
+        resource.data.createdBy == request.auth.uid
+      );
     }
   }
 }

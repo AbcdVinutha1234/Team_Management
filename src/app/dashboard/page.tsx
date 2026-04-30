@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -8,21 +7,45 @@ import { StatsGrid } from "@/components/dashboard/stats-grid";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, Search, Sparkles } from "lucide-react";
+import { Bell, Search, Sparkles, Loader2, Calendar } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { CreateTaskModal } from "@/components/tasks/create-task-modal";
 import { CreateProjectModal } from "@/components/projects/create-project-modal";
-import { useUser } from "@/firebase";
+import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, query, where, orderBy, limit } from "firebase/firestore";
+import { Task } from "@/lib/types";
+import Link from "next/link";
 
 export default function DashboardPage() {
   const [isMounted, setIsMounted] = useState(false);
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
+  const db = useFirestore();
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  if (!isMounted) return null;
+  const priorityTasksQuery = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return query(
+      collection(db, "tasks"),
+      where(`projectMembers.${user.uid}`, "!=", null),
+      where("status", "!=", "Done"),
+      orderBy("status"),
+      orderBy("createdAt", "desc"),
+      limit(5)
+    );
+  }, [db, user?.uid]);
+
+  const { data: tasks, isLoading: tasksLoading } = useCollection<Task>(priorityTasksQuery);
+
+  if (!isMounted || isUserLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <Loader2 className="h-10 w-10 animate-spin text-primary/40" />
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
@@ -51,8 +74,8 @@ export default function DashboardPage() {
           <main className="flex-1 p-8 space-y-8 max-w-7xl mx-auto w-full">
             <section>
               <div className="flex flex-col gap-1 mb-6">
-                <h2 className="text-xl font-bold font-headline">Welcome back, {user?.displayName || 'Alex'}!</h2>
-                <p className="text-muted-foreground">You have tasks to focus on today.</p>
+                <h2 className="text-xl font-bold font-headline">Welcome back, {user?.displayName || user?.email?.split('@')[0] || 'User'}!</h2>
+                <p className="text-muted-foreground">Here is what's happening in your workspace today.</p>
               </div>
               <StatsGrid />
             </section>
@@ -62,35 +85,46 @@ export default function DashboardPage() {
                 <Card className="border-none shadow-sm">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-lg font-bold font-headline">My Priority Tasks</CardTitle>
-                    <Button variant="link" className="text-primary p-0 h-auto">View all</Button>
+                    <Link href="/tasks">
+                      <Button variant="link" className="text-primary p-0 h-auto">View all</Button>
+                    </Link>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-1">
-                      {[
-                        { title: "Review Website Mockups", project: "Website Redesign", due: "Today", priority: "High" },
-                        { title: "Fix Dashboard API Integration", project: "Internal Tools", due: "Tomorrow", priority: "Urgent" },
-                        { title: "Team Sync Meeting", project: "Operations", due: "In 2 hours", priority: "Medium" }
-                      ].map((task, i) => (
-                        <div key={i} className="flex items-center justify-between p-4 rounded-xl hover:bg-muted/30 transition-colors border-b last:border-none">
-                          <div className="flex items-center gap-4">
-                            <div className={`w-1.5 h-10 rounded-full ${
-                              task.priority === "Urgent" ? "bg-destructive" : task.priority === "High" ? "bg-orange-500" : "bg-primary"
-                            }`} />
-                            <div>
-                              <p className="font-semibold">{task.title}</p>
-                              <p className="text-xs text-muted-foreground">{task.project}</p>
+                      {tasksLoading ? (
+                        <div className="flex items-center justify-center py-10">
+                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : tasks && tasks.length > 0 ? (
+                        tasks.map((task) => (
+                          <div key={task.id} className="flex items-center justify-between p-4 rounded-xl hover:bg-muted/30 transition-colors border-b last:border-none">
+                            <div className="flex items-center gap-4">
+                              <div className={`w-1.5 h-10 rounded-full ${
+                                task.priority === "Critical" ? "bg-destructive" : task.priority === "High" ? "bg-orange-500" : "bg-primary"
+                              }`} />
+                              <div>
+                                <p className="font-semibold">{task.title}</p>
+                                <p className="text-xs text-muted-foreground">{task.status}</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
+                                <Calendar className="h-3 w-3" />
+                                <span>{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No date'}</span>
+                              </div>
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter ${
+                                task.priority === "Critical" ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
+                              }`}>
+                                {task.priority}
+                              </span>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium">{task.due}</p>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter ${
-                              task.priority === "Urgent" ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
-                            }`}>
-                              {task.priority}
-                            </span>
-                          </div>
+                        ))
+                      ) : (
+                        <div className="py-10 text-center text-muted-foreground">
+                          <p>No active tasks found. Time to relax!</p>
                         </div>
-                      ))}
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -113,17 +147,13 @@ export default function DashboardPage() {
                 
                 <Card className="border-none shadow-sm">
                   <CardHeader>
-                    <CardTitle className="text-lg font-bold font-headline">Team Members</CardTitle>
+                    <CardTitle className="text-lg font-bold font-headline">Active Workspace</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {["Sarah Chen", "James Wilson", "Maya Lopez", "David Kim"].map((name, i) => (
-                      <div key={i} className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm font-medium">{name}</span>
-                        </div>
-                        <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
-                      </div>
-                    ))}
+                    <p className="text-sm text-muted-foreground italic">You are currently active in your professional workspace. Connect with your team in the Team tab.</p>
+                    <Link href="/team">
+                      <Button variant="outline" className="w-full rounded-xl font-bold mt-2">Manage Team</Button>
+                    </Link>
                   </CardContent>
                 </Card>
               </div>
