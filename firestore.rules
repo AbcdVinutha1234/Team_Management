@@ -32,17 +32,19 @@ service cloud.firestore {
 
     match /projects/{projectId} {
       allow list: if isSignedIn();
-      allow get: if isMember(resource.data.members);
+      allow get: if isSignedIn() && isMember(resource.data.members);
       allow create: if isSignedIn();
-      allow update, delete: if isAdmin(resource.data.members);
+      allow update, delete: if isSignedIn() && isAdmin(resource.data.members);
 
       match /memberships/{mUserId} {
         allow get, list: if isSignedIn();
-        allow create, update, delete: if isAdmin(request.resource.data.projectMembers);
+        allow create, update, delete: if isSignedIn() && isAdmin(request.resource.data.projectMembers);
       }
     }
 
     match /tasks/{taskId} {
+      // Explicitly allow listing for signed-in users
+      // Queries will still be filtered by assignedToId or projectId in the app
       allow list: if isSignedIn();
       allow get: if isSignedIn();
       allow create: if isSignedIn();

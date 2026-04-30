@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Calendar, Clock, CheckCircle2, Circle, Loader2 } from "lucide-react";
+import { Calendar, Clock, CheckCircle2, Circle, Loader2, Target } from "lucide-react";
 import { CreateTaskModal } from "@/components/tasks/create-task-modal";
 import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, orderBy } from "firebase/firestore";
+import { collection, query, where } from "firebase/firestore";
 import { Task } from "@/lib/types";
 
 export default function TasksPage() {
@@ -27,8 +27,7 @@ export default function TasksPage() {
     if (!db || !user) return null;
     return query(
       collection(db, "tasks"), 
-      where("assignedToId", "==", user.uid), 
-      orderBy("createdAt", "desc")
+      where("assignedToId", "==", user.uid)
     );
   }, [db, user?.uid]);
 
@@ -69,7 +68,7 @@ export default function TasksPage() {
                 </TabsList>
                 
                 <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
-                  <span className="px-3 py-1 bg-white border rounded-full shadow-sm">Sorted by: Newest</span>
+                  <span className="px-3 py-1 bg-white border rounded-full shadow-sm">Real-time sync active</span>
                 </div>
               </div>
 
@@ -82,7 +81,7 @@ export default function TasksPage() {
                   <div className="grid grid-cols-1 gap-4">
                     {tasks.map((task) => {
                       const dueDate = task.dueDate ? new Date(task.dueDate) : null;
-                      const isOverdue = dueDate && dueDate < new Date();
+                      const isOverdue = dueDate && dueDate < new Date() && task.status !== "Done";
                       
                       return (
                         <Card key={task.id} className="border-none shadow-sm hover:shadow-md transition-all duration-200 rounded-3xl overflow-hidden group">
@@ -137,7 +136,7 @@ export default function TasksPage() {
                 ) : (
                   <div className="flex flex-col items-center justify-center py-24 text-center space-y-4 bg-white/50 rounded-3xl border-2 border-dashed border-primary/10">
                     <div className="bg-primary/5 p-6 rounded-full">
-                      <TargetIcon className="h-12 w-12 text-primary/40" />
+                      <Target className="h-12 w-12 text-primary/40" />
                     </div>
                     <div>
                       <h3 className="text-xl font-bold font-headline">No tasks yet</h3>
@@ -152,9 +151,9 @@ export default function TasksPage() {
                 <TabsContent key={statusValue} value={statusValue} className="m-0">
                   <div className="flex flex-col items-center justify-center py-20 text-muted-foreground space-y-4 bg-white/50 rounded-3xl border-2 border-dashed border-muted/50">
                     <div className="p-4 bg-muted/50 rounded-full">
-                      <TargetIcon className="h-10 w-10 opacity-20" />
+                      <Target className="h-10 w-10 opacity-20" />
                     </div>
-                    <p className="font-medium">All caught up here!</p>
+                    <p className="font-medium">Filter view updated automatically</p>
                   </div>
                 </TabsContent>
               ))}
@@ -163,11 +162,5 @@ export default function TasksPage() {
         </SidebarInset>
       </div>
     </SidebarProvider>
-  );
-}
-
-function TargetIcon({ className }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
   );
 }
