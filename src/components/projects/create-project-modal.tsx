@@ -16,12 +16,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Loader2 } from 'lucide-react';
 import { useFirestore, useUser } from '@/firebase';
-import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
-export function CreateProjectModal() {
+export function CreateProjectModal({ children }: { children?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -76,9 +76,11 @@ export function CreateProjectModal() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="rounded-xl px-5 font-semibold shadow-md shadow-primary/20">
-          <Plus className="mr-2 h-4 w-4" /> Create Project
-        </Button>
+        {children || (
+          <Button className="rounded-xl px-5 font-semibold shadow-md shadow-primary/20">
+            <Plus className="mr-2 h-4 w-4" /> Create Project
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px] rounded-3xl p-8">
         <DialogHeader>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -9,24 +10,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Bell, Search, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CreateTaskModal } from "@/components/tasks/create-task-modal";
-import { useToast } from "@/hooks/use-toast";
+import { CreateProjectModal } from "@/components/projects/create-project-modal";
+import { useUser } from "@/firebase";
 
 export default function DashboardPage() {
   const [isMounted, setIsMounted] = useState(false);
-  const { toast } = useToast();
+  const { user } = useUser();
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  const handleCreateProject = () => {
-    toast({
-      title: "Action captured",
-      description: "Project creation feature is coming in the next update!",
-    });
-  };
+  if (!isMounted) return null;
 
   return (
     <SidebarProvider>
@@ -55,8 +51,8 @@ export default function DashboardPage() {
           <main className="flex-1 p-8 space-y-8 max-w-7xl mx-auto w-full">
             <section>
               <div className="flex flex-col gap-1 mb-6">
-                <h2 className="text-xl font-bold font-headline">Welcome back, Alex!</h2>
-                <p className="text-muted-foreground">You have 5 tasks to focus on today.</p>
+                <h2 className="text-xl font-bold font-headline">Welcome back, {user?.displayName || 'Alex'}!</h2>
+                <p className="text-muted-foreground">You have tasks to focus on today.</p>
               </div>
               <StatsGrid />
             </section>
@@ -103,7 +99,9 @@ export default function DashboardPage() {
                   <div className="relative z-10 space-y-4">
                     <h3 className="text-primary-foreground text-2xl font-bold font-headline">Ready for your next project?</h3>
                     <p className="text-primary-foreground/80 max-w-md">Collaborate with your team members in real-time and track progress effortlessly.</p>
-                    <Button variant="secondary" onClick={handleCreateProject} className="font-bold rounded-xl px-6">Create New Project</Button>
+                    <CreateProjectModal>
+                      <Button variant="secondary" className="font-bold rounded-xl px-6">Create New Project</Button>
+                    </CreateProjectModal>
                   </div>
                   <div className="absolute top-0 right-0 h-full w-1/3 bg-accent opacity-20 skew-x-12 translate-x-1/2" />
                   <Sparkles className="absolute bottom-4 right-8 h-24 w-24 text-primary-foreground/10" />
@@ -121,18 +119,11 @@ export default function DashboardPage() {
                     {["Sarah Chen", "James Wilson", "Maya Lopez", "David Kim"].map((name, i) => (
                       <div key={i} className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={`https://picsum.photos/seed/member${i}/100/100`} />
-                            <AvatarFallback>{name[0]}</AvatarFallback>
-                          </Avatar>
                           <span className="text-sm font-medium">{name}</span>
                         </div>
                         <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
                       </div>
                     ))}
-                    <Button variant="outline" onClick={() => toast({ title: "Invite link copied", description: "Share the link with your teammate to join." })} className="w-full rounded-xl mt-2 border-dashed">
-                      Invite Member
-                    </Button>
                   </CardContent>
                 </Card>
               </div>

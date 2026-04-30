@@ -6,7 +6,7 @@ import { AppSidebar } from "@/components/layout/sidebar-nav";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Calendar, Filter, ChevronRight, Loader2 } from "lucide-react";
+import { MoreHorizontal, Calendar, Filter, ChevronRight, Loader2, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -24,7 +24,9 @@ export default function ProjectsPage() {
   }, []);
 
   const projectsQuery = isMounted && db ? query(collection(db, "projects"), orderBy("createdAt", "desc")) : null;
-  const { data: projects, loading } = useCollection<Project>(projectsQuery as any);
+  const { data: projects, isLoading } = useCollection<Project>(projectsQuery as any);
+
+  if (!isMounted) return null;
 
   return (
     <SidebarProvider>
@@ -46,7 +48,7 @@ export default function ProjectsPage() {
           </header>
           
           <main className="flex-1 p-8 max-w-7xl mx-auto w-full">
-            {loading ? (
+            {isLoading ? (
               <div className="flex items-center justify-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin text-primary/40" />
               </div>
@@ -84,7 +86,7 @@ export default function ProjectsPage() {
                       
                       <div className="flex items-center justify-between pt-4 border-t border-dashed">
                         <div className="flex -space-x-3 overflow-hidden">
-                          {project.members?.slice(0, 3).map((memberId, i) => (
+                          {project.members && Object.keys(project.members).slice(0, 3).map((memberId) => (
                             <Avatar key={memberId} className="border-2 border-background w-8 h-8">
                               <AvatarImage src={`https://picsum.photos/seed/${memberId}/100/100`} />
                               <AvatarFallback>U</AvatarFallback>
@@ -93,7 +95,7 @@ export default function ProjectsPage() {
                         </div>
                         <div className="flex items-center text-muted-foreground text-[10px] gap-1.5 font-bold uppercase tracking-tighter">
                           <Calendar className="h-3.5 w-3.5" />
-                          <span>Started {isMounted && project.createdAt ? new Date((project.createdAt as any).seconds * 1000).toLocaleDateString() : 'Recently'}</span>
+                          <span>Started {project.createdAt ? new Date(project.createdAt).toLocaleDateString() : 'Recently'}</span>
                         </div>
                       </div>
                     </CardContent>
