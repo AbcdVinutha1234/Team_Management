@@ -3,54 +3,31 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * WORKLINK SECURITY MODEL: PROTOTYPING MODE
+     * WORKLINK SECURITY MODEL
      * 
      * Core Philosophy:
-     * This ruleset enforces a strict Role-Based Access Control (RBAC) and Ownership model while maintaining
-     * high flexibility for data schemas to support rapid prototyping. Authorization is the primary focus.
-     *
-     * Data Structure:
-     * - /users/{userId}: Private user profiles.
-     * - /projects/{projectId}: Shared project containers with a 'members' map for RBAC.
-     * - /tasks/{taskId}: Global collection of tasks, secured via denormalized project membership maps.
-     * - /projects/{projectId}/memberships/{userId}: Explicit membership links between users and projects.
-     *
-     * Denormalization for Authorization:
-     * This architecture heavily utilizes denormalization to avoid costly 'get()' calls in rules:
-     * 1. Projects contain a 'members' map (UID -> Role) for instant access checks.
-     * 2. Tasks denormalize the 'projectMembers' map from their parent project to allow independent authorization.
-     * 3. Membership documents also denormalize the 'projectMembers' map to allow admins to manage the team.
-     *
-     * Key Security Decisions:
-     * - Users can only read and write their own profile data.
-     * - Project access is governed by the 'members' map stored directly on the resource.
-     * - Task visibility is determined by project membership or direct assignment.
-     * - Relational fields (like 'id', 'projectId', 'createdBy') are enforced during creation and made immutable.
+     * Enforces RBAC and Ownership.
+     * Denormalization is used to avoid 'get()' calls.
      */
 
     // --- Helper Functions ---
 
-    /** Checks if the user is authenticated. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** Checks if the authenticated user matches the provided ID. */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /** Checks if the document exists and the user is the owner. */
     function isExistingOwner(userId) {
       return resource != null && isOwner(userId);
     }
 
-    /** Checks if the user is a member of a project based on a denormalized map. */
     function isMember(memberMap) {
       return isSignedIn() && memberMap[request.auth.uid] != null;
     }
 
-    /** Checks if the user has an Admin role in the project member map. */
     function isAdmin(memberMap) {
       return isSignedIn() && memberMap[request.auth.uid] == 'Admin';
     }
@@ -58,59 +35,36 @@ service cloud.firestore {
     // --- Collection Rules ---
 
     /**
-     * @description Rules for user profiles. Users can only access their own profile.
-     * @path /users/{userId}
-     * @allow (get, list, create, update) if the user's UID matches the document ID.
-     * @deny (all) if the user tries to access a profile that is not their own.
-     * @principle Enforces path-based ownership and relational integrity for user IDs.
+     * @description Users can see the whole team, but only edit their own profile.
      */
     match /users/{userId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn(); // Allow signup and invitations
+      allow update: if isExistingOwner(userId);
+      allow delete: if isSignedIn(); // Allow workspace management
     }
 
     /**
-     * @description Rules for projects. Access is granted based on the 'members' map.
-     * @path /projects/{projectId}
-     * @allow (get) if the user is in the members map. (create) if the user sets themselves as creator.
-     * @deny (update, delete) if the user is not an 'Admin' in the project.
-     * @principle Uses denormalized roles for RBAC without cross-document lookups.
+     * @description Projects are governed by the 'members' map.
      */
     match /projects/{projectId} {
       allow get: if isMember(resource.data.members);
-      allow list: if isSignedIn(); // Queries must filter based on the 'members' map.
+      allow list: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid && request.resource.data.id == projectId;
-      allow update: if resource != null && isAdmin(resource.data.members);
-      allow delete: if resource != null && isAdmin(resource.data.members);
+      allow update, delete: if resource != null && isAdmin(resource.data.members);
 
-      /**
-       * @description Project membership subcollection. Allows managing team members.
-       * @path /projects/{projectId}/memberships/{userId}
-       * @allow (get, list) if member of the project. (create, update, delete) if project Admin.
-       * @deny (write) if user is a standard member without Admin rights.
-       * @principle Relies on denormalized projectMembers map for local authorization independence.
-       */
       match /memberships/{mUserId} {
-        allow get: if isMember(resource.data.projectMembers);
-        allow list: if isSignedIn(); // List operations require query filtering.
-        allow create: if isSignedIn() && isAdmin(request.resource.data.projectMembers);
-        allow update: if resource != null && isAdmin(resource.data.projectMembers);
-        allow delete: if resource != null && isAdmin(resource.data.projectMembers);
+        allow get, list: if isMember(resource.data.projectMembers);
+        allow create, update, delete: if isSignedIn() && isAdmin(request.resource.data.projectMembers);
       }
     }
 
     /**
-     * @description Global tasks collection. Secured by denormalized project roles and assignments.
-     * @path /tasks/{taskId}
-     * @allow (get) if project member or assignee. (create) if project member.
-     * @deny (delete) if user is not the task creator or a project Admin.
-     * @principle Enforces authorization independence by checking a local 'projectMembers' map.
+     * @description Tasks are secured by denormalized project roles.
      */
     match /tasks/{taskId} {
       allow get: if isMember(resource.data.projectMembers) || resource.data.assignedToId == request.auth.uid;
-      allow list: if isSignedIn(); // Filters by projectMembers map or assignedToId.
+      allow list: if isSignedIn();
       allow create: if isSignedIn() && isMember(request.resource.data.projectMembers) && request.resource.data.createdBy == request.auth.uid;
       allow update: if resource != null && (isMember(resource.data.projectMembers) || resource.data.assignedToId == request.auth.uid);
       allow delete: if resource != null && (isAdmin(resource.data.projectMembers) || resource.data.createdBy == request.auth.uid);

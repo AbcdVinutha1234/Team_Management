@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -11,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, doc, setDoc, deleteDoc, serverTimestamp, query, orderBy } from "firebase/firestore";
+import { collection, doc, setDoc, deleteDoc, query, orderBy } from "firebase/firestore";
 import { User } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -81,18 +80,22 @@ export default function TeamPage() {
 
     const inviteId = `inv_${Date.now()}`;
     const userData = {
+      id: inviteId,
       name: newUserName,
+      firstName: newUserName.split(' ')[0] || newUserName,
+      lastName: newUserName.split(' ').slice(1).join(' ') || '',
       email: newUserEmail,
       role: newUserRole,
       avatarUrl: `https://picsum.photos/seed/${inviteId}/100/100`,
-      createdAt: serverTimestamp(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     setDoc(doc(db, 'users', inviteId), userData)
       .then(() => {
         toast({
           title: "Invitation recorded",
-          description: `User ${newUserName} added to workspace. Note: Email delivery is not configured.`,
+          description: `User ${newUserName} added to workspace.`,
         });
         setIsInviteModalOpen(false);
         setNewUserName("");
