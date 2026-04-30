@@ -1,3 +1,28 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "user-1",
+      "description": "Professional team member avatar",
+      "imageUrl": "https://picsum.photos/seed/user1/200/200",
+      "imageHint": "professional avatar"
+    },
+    {
+      "id": "user-2",
+      "description": "Collaborative worker portrait",
+      "imageUrl": "https://picsum.photos/seed/user2/200/200",
+      "imageHint": "business person"
+    },
+    {
+      "id": "user-3",
+      "description": "Remote developer avatar",
+      "imageUrl": "https://picsum.photos/seed/user3/200/200",
+      "imageHint": "software engineer"
+    },
+    {
+      "id": "project-thumb",
+      "description": "Abstract project background",
+      "imageUrl": "https://picsum.photos/seed/proj/600/400",
+      "imageHint": "workspace background"
+    }
+  ]
 }
