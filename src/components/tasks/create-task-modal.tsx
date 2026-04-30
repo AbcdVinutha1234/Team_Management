@@ -103,6 +103,7 @@ export function CreateTaskModal({ children }: { children?: React.ReactNode }) {
     const project = projects?.find(p => p.id === selectedProjectId);
     
     // Denormalize members for security rule check
+    // We expect the project to have a members map from Firestore
     const projectMembers = (project as any)?.members || { [user.uid]: 'Admin' };
 
     const taskData = {

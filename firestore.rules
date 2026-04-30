@@ -34,7 +34,8 @@ service cloud.firestore {
       allow list: if isSignedIn();
       allow get: if isSignedIn() && isMember(resource.data.members);
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && isAdmin(resource.data.members);
+      allow update: if isSignedIn() && isAdmin(resource.data.members);
+      allow delete: if isSignedIn() && isAdmin(resource.data.members);
 
       match /memberships/{mUserId} {
         allow get, list: if isSignedIn();
@@ -43,14 +44,23 @@ service cloud.firestore {
     }
 
     match /tasks/{taskId} {
-      // Explicitly allow listing for signed-in users
-      // Queries will still be filtered by assignedToId or projectId in the app
+      // Allow listing tasks for any signed-in user.
+      // In a production app, you might constrain this to query filters,
+      // but 'isSignedIn()' is the standard MVP baseline.
       allow list: if isSignedIn();
+      
+      // Allow getting a specific task if the user is signed in.
       allow get: if isSignedIn();
+      
+      // Allow creation if signed in.
       allow create: if isSignedIn();
+      
+      // Allow updates if signed in.
       allow update: if isSignedIn();
+      
+      // Allow deletion if the user is an admin or the creator.
       allow delete: if isSignedIn() && (
-        isAdmin(resource.data.projectMembers) || 
+        (resource.data.projectMembers != null && resource.data.projectMembers[request.auth.uid] == 'Admin') || 
         resource.data.createdBy == request.auth.uid
       );
     }

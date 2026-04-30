@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { CreateTaskModal } from "@/components/tasks/create-task-modal";
 import { CreateProjectModal } from "@/components/projects/create-project-modal";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, limit } from "firebase/firestore";
+import { collection, query, where, limit, orderBy } from "firebase/firestore";
 import { Task, Project } from "@/lib/types";
 import Link from "next/link";
 
@@ -150,9 +150,7 @@ export default function DashboardPage() {
                   <div className="relative z-10 space-y-4">
                     <h3 className="text-primary-foreground text-2xl font-bold font-headline">Ready for your next project?</h3>
                     <p className="text-primary-foreground/80 max-w-md">Collaborate with your team members in real-time and track progress effortlessly.</p>
-                    <CreateProjectModal>
-                      <Button variant="secondary" className="font-bold rounded-xl px-6">Create New Project</Button>
-                    </CreateProjectModal>
+                    <CreateProjectModal />
                   </div>
                   <div className="absolute top-0 right-0 h-full w-1/3 bg-accent opacity-20 skew-x-12 translate-x-1/2" />
                   <Sparkles className="absolute bottom-4 right-8 h-24 w-24 text-primary-foreground/10" />
