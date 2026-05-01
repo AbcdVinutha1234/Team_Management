@@ -57,9 +57,20 @@ const sendInvitationEmailFlow = ai.defineFlow(
     outputSchema: SendInvitationEmailOutputSchema,
   },
   async (input) => {
-    // Default professional message as fallback
-    let emailContent = `Hi ${input.recipientName},\n\nYou've been invited by ${input.inviterName} to join the ${input.workspaceName} professional workspace on WorkLink. We're excited to have you on board to collaborate on projects and manage tasks more efficiently.\n\nSee you in the workspace!\n\nBest regards,\nThe ${input.workspaceName} Team`;
-    let generationStatus = "Default message used.";
+    // 3. Add fallback: Default professional message if AI fails
+    const staticFallbackMessage = `Hi ${input.recipientName},
+
+You've been invited by ${input.inviterName} to join the "${input.workspaceName}" professional workspace on WorkLink. 
+
+We're excited to have you on board to collaborate on projects and manage tasks more efficiently. 
+
+See you in the workspace!
+
+Best regards,
+The ${input.workspaceName} Team`;
+
+    let emailContent = staticFallbackMessage;
+    let generationStatus = "Default static message used.";
 
     try {
       const { output } = await prompt(input);
@@ -72,6 +83,7 @@ const sendInvitationEmailFlow = ai.defineFlow(
       generationStatus = "AI Fallback triggered.";
     }
 
+    // SMTP Configuration from environment variables
     let smtpResult = "SMTP not configured. Please add SMTP_HOST, SMTP_USER, and SMTP_PASS to environment variables.";
     let deliverySuccess = false;
 
