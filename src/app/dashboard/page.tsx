@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { CreateTaskModal } from "@/components/tasks/create-task-modal";
 import { CreateProjectModal } from "@/components/projects/create-project-modal";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where } from "firebase/firestore";
+import { collection, query, where, limit } from "firebase/firestore";
 import { Task, Project } from "@/lib/types";
 import Link from "next/link";
 
@@ -31,14 +31,14 @@ export default function DashboardPage() {
     if (!db || !user?.uid || !isMounted) return null;
     return query(
       collection(db, "tasks"),
-      where("assignedToId", "==", user.uid)
+      where("assignedToId", "==", user.uid),
+      limit(20)
     );
   }, [db, user?.uid, isMounted]);
 
   // Stable query for projects where the user is a member
   const projectsQuery = useMemoFirebase(() => {
     if (!db || !user?.uid || !isMounted) return null;
-    // Querying by map key existence
     return query(
       collection(db, "projects"), 
       where(`members.${user.uid}`, "in", ["Admin", "Member"])
@@ -50,10 +50,13 @@ export default function DashboardPage() {
 
   // Filter for priority tasks (not done, limited to 5)
   const priorityTasks = allTasks 
-    ? allTasks.filter(t => t.status !== "Done").sort((a, b) => {
-        const priorities = { Critical: 0, High: 1, Medium: 2, Low: 3 };
-        return (priorities[a.priority as keyof typeof priorities] || 4) - (priorities[b.priority as keyof typeof priorities] || 4);
-      }).slice(0, 5)
+    ? allTasks
+        .filter(t => t.status !== "Done")
+        .sort((a, b) => {
+          const priorities = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+          return (priorities[a.priority as keyof typeof priorities] || 4) - (priorities[b.priority as keyof typeof priorities] || 4);
+        })
+        .slice(0, 5)
     : [];
 
   if (!isMounted || isUserLoading) {
@@ -99,15 +102,17 @@ export default function DashboardPage() {
           <main className="flex-1 p-8 space-y-8 max-w-7xl mx-auto w-full">
             <section className="space-y-2">
               <div className="flex flex-col gap-1">
-                <h2 className="text-3xl font-black font-headline tracking-tight">Good day, {displayName}</h2>
-                <p className="text-muted-foreground">You have {allTasks?.filter(t => t.status !== 'Done').length || 0} active tasks across {projects?.length || 0} projects.</p>
+                <h2 className="text-3xl font-black font-headline tracking-tight">Welcome back, {displayName}</h2>
+                <p className="text-muted-foreground">
+                  {tasksLoading ? "Checking your tasks..." : `You have ${allTasks?.filter(t => t.status !== 'Done').length || 0} active tasks.`}
+                </p>
               </div>
               <StatsGrid tasks={allTasks || []} projectsCount={projects?.length || 0} />
             </section>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-8">
-                <Card className="border-none shadow-sm rounded-3xl overflow-hidden">
+                <Card className="border-none shadow-sm rounded-3xl overflow-hidden bg-white">
                   <CardHeader className="flex flex-row items-center justify-between pb-4 border-b">
                     <CardTitle className="text-lg font-bold font-headline">Priority Focus</CardTitle>
                     <Link href="/tasks">
@@ -157,8 +162,8 @@ export default function DashboardPage() {
                             <Target className="h-8 w-8 text-muted-foreground/40" />
                           </div>
                           <div className="space-y-1">
-                            <p className="font-bold text-muted-foreground">Clear runway!</p>
-                            <p className="text-sm text-muted-foreground/60">No high priority tasks found.</p>
+                            <p className="font-bold text-muted-foreground">No pending tasks</p>
+                            <p className="text-sm text-muted-foreground/60">Enjoy your clear schedule or create a new task.</p>
                           </div>
                         </div>
                       )}
@@ -199,7 +204,7 @@ export default function DashboardPage() {
                         Use the <strong className="text-primary font-bold">AI Suggest</strong> button when creating tasks to generate detailed descriptions and actionable subtasks instantly.
                       </p>
                     </div>
-                    <Link href="/team">
+                    <Link href="/team" className="block">
                       <Button variant="outline" className="w-full rounded-2xl font-bold h-11 border-primary/20 hover:bg-primary/5">
                         Invite Colleagues
                       </Button>

@@ -4,7 +4,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     /**
      * WORKLINK SECURITY MODEL
-     * Simplified rules to ensure immediate functionality and unblock development.
+     * Updated to support explicit list/read for authenticated users.
      */
 
     function isSignedIn() {
