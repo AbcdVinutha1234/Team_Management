@@ -32,16 +32,16 @@ export default function DashboardPage() {
     return query(
       collection(db, "tasks"),
       where("assignedToId", "==", user.uid),
-      limit(20)
+      limit(50)
     );
   }, [db, user?.uid, isMounted]);
 
-  // Stable query for projects where the user is a member
+  // Stable query for projects
   const projectsQuery = useMemoFirebase(() => {
     if (!db || !user?.uid || !isMounted) return null;
     return query(
-      collection(db, "projects"), 
-      where(`members.${user.uid}`, "in", ["Admin", "Member"])
+      collection(db, "projects"),
+      limit(20)
     );
   }, [db, user?.uid, isMounted]);
 

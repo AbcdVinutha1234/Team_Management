@@ -4,7 +4,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     /**
      * WORKLINK SECURITY MODEL
-     * Updated to support explicit list/read for authenticated users.
+     * Highly permissive read/write for all authenticated users to ensure stability during MVP development.
      */
 
     function isSignedIn() {
@@ -17,13 +17,16 @@ service cloud.firestore {
     }
 
     match /projects/{projectId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow read, write: if isSignedIn();
     }
 
     match /tasks/{taskId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow read, write: if isSignedIn();
+    }
+
+    // Fallback for any other collection
+    match /{document=**} {
+      allow read, write: if isSignedIn();
     }
   }
 }

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, orderBy, limit } from "firebase/firestore";
+import { collection, query, where, limit } from "firebase/firestore";
 import { Task } from "@/lib/types";
 import { Loader2 } from "lucide-react";
 
@@ -18,17 +18,25 @@ export function RecentActivity() {
     setIsMounted(true);
   }, []);
 
+  // Stable query for recent activity. Removed orderBy to avoid index requirement for MVP stability.
+  // We will sort in-memory instead.
   const activityQuery = useMemoFirebase(() => {
     if (!db || !user?.uid || !isMounted) return null;
     return query(
       collection(db, "tasks"),
       where("assignedToId", "==", user.uid),
-      orderBy("createdAt", "desc"),
-      limit(5)
+      limit(20)
     );
   }, [db, user?.uid, isMounted]);
 
   const { data: tasks, isLoading } = useCollection<Task>(activityQuery);
+
+  // In-memory sorting for recent activity
+  const sortedTasks = tasks ? [...tasks].sort((a, b) => {
+    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return dateB - dateA;
+  }).slice(0, 5) : [];
 
   if (!isMounted) return null;
 
@@ -42,8 +50,8 @@ export function RecentActivity() {
           <div className="flex justify-center py-4">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        ) : tasks && tasks.length > 0 ? (
-          tasks.map((task) => (
+        ) : sortedTasks.length > 0 ? (
+          sortedTasks.map((task) => (
             <div key={task.id} className="flex gap-4 items-start">
               <Avatar className="h-9 w-9 border border-border">
                 <AvatarImage src={`https://picsum.photos/seed/${task.assignedToId}/100/100`} />
