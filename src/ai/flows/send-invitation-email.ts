@@ -28,7 +28,7 @@ export type SendInvitationEmailOutput = z.infer<typeof SendInvitationEmailOutput
 
 const prompt = ai.definePrompt({
   name: 'invitationEmailPrompt',
-  model: 'googleai/gemini-1.5-pro',
+  model: 'googleai/gemini-pro',
   input: { schema: SendInvitationEmailInputSchema },
   output: { 
     schema: z.object({
@@ -39,12 +39,6 @@ const prompt = ai.definePrompt({
   
   Generate a professional, warm, and clear invitation email for {{{recipientName}}}.
   They have been invited by {{{inviterName}}} to join the "{{{workspaceName}}}" professional workspace.
-  
-  The email should:
-  1. Clearly state who invited them.
-  2. Explain that WorkLink is a collaborative platform for project and task management.
-  3. Encourage them to sign up to start collaborating.
-  4. Maintain a sleek, modern, and professional tone.
   
   Return the result as a JSON object with an 'emailBody' field containing the text.`,
 });
@@ -62,52 +56,53 @@ const sendInvitationEmailFlow = ai.defineFlow(
     outputSchema: SendInvitationEmailOutputSchema,
   },
   async (input) => {
+    let emailContent = `Hi ${input.recipientName}, you have been invited to join ${input.workspaceName} by ${input.inviterName}. We look forward to seeing you there!`;
+    let generationStatus = "Default fallback message used.";
+
     try {
       const { output } = await prompt(input);
-      const emailContent = output?.emailBody || `Hi ${input.recipientName}, you've been invited to join ${input.workspaceName} by ${input.inviterName}. We look forward to working with you!`;
-
-      let smtpResult = "SMTP not configured. Add SMTP_HOST, SMTP_USER, SMTP_PASS to environment variables for live delivery.";
-      let deliverySuccess = false;
-
-      if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-        try {
-          const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: Number(process.env.SMTP_PORT) || 587,
-            secure: process.env.SMTP_SECURE === 'true',
-            auth: {
-              user: process.env.SMTP_USER,
-              pass: process.env.SMTP_PASS,
-            },
-          });
-
-          await transporter.sendMail({
-            from: process.env.SMTP_FROM || '"WorkLink" <invites@worklink.ai>',
-            to: input.recipientEmail,
-            subject: `Join ${input.workspaceName}`,
-            text: emailContent,
-          });
-          
-          smtpResult = `Invitation successfully delivered to ${input.recipientEmail}.`;
-          deliverySuccess = true;
-        } catch (smtpError: any) {
-          deliverySuccess = false;
-          smtpResult = `SMTP Delivery Error: ${smtpError.message}`;
-        }
+      if (output?.emailBody) {
+        emailContent = output.emailBody;
+        generationStatus = "AI content generated successfully.";
       }
-
-      return {
-        success: deliverySuccess,
-        message: smtpResult,
-        emailPreview: emailContent,
-      };
     } catch (error: any) {
-      console.error("AI Generation failure in flow:", error);
-      return {
-        success: false,
-        message: `AI Generation failed: ${error.message || 'Unknown error'}`,
-        emailPreview: `Hi ${input.recipientName}, you have been invited to join ${input.workspaceName} by ${input.inviterName}. (System fallback message)`,
-      };
+      console.error("AI Generation failed, using fallback:", error.message);
+      generationStatus = `AI Fallback: ${error.message}`;
     }
+
+    let smtpResult = "SMTP not configured. Add SMTP_HOST, SMTP_USER, SMTP_PASS to environment variables.";
+    let deliverySuccess = false;
+
+    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+      try {
+        const transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: Number(process.env.SMTP_PORT) || 587,
+          secure: process.env.SMTP_SECURE === 'true',
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+          },
+        });
+
+        await transporter.sendMail({
+          from: process.env.SMTP_FROM || '"WorkLink" <invites@worklink.ai>',
+          to: input.recipientEmail,
+          subject: `Join ${input.workspaceName}`,
+          text: emailContent,
+        });
+        
+        smtpResult = `Invitation delivered to ${input.recipientEmail}.`;
+        deliverySuccess = true;
+      } catch (smtpError: any) {
+        smtpResult = `SMTP Error: ${smtpError.message}`;
+      }
+    }
+
+    return {
+      success: deliverySuccess,
+      message: `${generationStatus} ${smtpResult}`,
+      emailPreview: emailContent,
+    };
   }
 );
