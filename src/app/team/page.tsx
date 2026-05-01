@@ -1,10 +1,9 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/layout/sidebar-nav";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Mail, Shield, MoreVertical, Search, UserPlus, Loader2, CheckCircle2, X, AlertCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -131,17 +130,16 @@ export default function TeamPage() {
           if (result.success) {
             toast({
               title: "Invitation Sent",
-              description: "The invitation email is being delivered via SMTP.",
+              description: "The invitation email has been sent via SMTP.",
             });
           } else {
             toast({
               variant: "destructive",
-              title: "Delivery Notice",
-              description: result.message || "Invitation generated but SMTP delivery failed.",
+              title: "SMTP Notice",
+              description: result.message,
             });
           }
         } catch (error) {
-          console.error("AI Generation failed:", error);
           setSentEmailData({
             recipientEmail: recipientEmail,
             content: `Hi ${recipientName}, you've been invited to join WorkLink by ${currentUser?.displayName || 'an admin'}.`,
@@ -151,7 +149,6 @@ export default function TeamPage() {
         }
       })
       .catch(async (err) => {
-        console.error("Firestore error:", err);
         const permissionError = new FirestorePermissionError({
           path: `users/${inviteId}`,
           operation: 'create',
@@ -245,7 +242,7 @@ export default function TeamPage() {
             </div>
           </header>
 
-          <main className="flex-1 p-8 max-w-7xl mx-auto w-full space-y-8">
+          <main className="flex-1 p-8 max-w-7xl auto w-full space-y-8">
             <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
               <div className="relative w-full md:w-96">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -347,8 +344,8 @@ export default function TeamPage() {
                         <Mail className="h-6 w-6" />
                       </div>
                       <div>
-                        <DialogTitle className="text-xl font-bold font-headline text-primary-foreground">Live Invitation Preview</DialogTitle>
-                        <DialogDescription className="text-primary-foreground/70 text-sm">Review the content delivered to {sentEmailData?.recipientEmail}</DialogDescription>
+                        <DialogTitle className="text-xl font-bold font-headline text-primary-foreground">Email Transmission Report</DialogTitle>
+                        <DialogDescription className="text-primary-foreground/70 text-sm">Reviewing the content sent to {sentEmailData?.recipientEmail}</DialogDescription>
                       </div>
                     </div>
                     <Button 
@@ -364,7 +361,7 @@ export default function TeamPage() {
                 
                 <div className="space-y-2 text-sm bg-white/10 p-4 rounded-2xl border border-white/10">
                   <p><span className="opacity-60 font-medium">To:</span> {sentEmailData?.recipientEmail}</p>
-                  <p><span className="opacity-60 font-medium">Delivery Status:</span> <span className="font-bold uppercase tracking-wider text-[10px] bg-white/20 px-2 py-0.5 rounded ml-1">{sentEmailData?.status}</span></p>
+                  <p><span className="opacity-60 font-medium">Transmission:</span> <span className="font-bold uppercase tracking-wider text-[10px] bg-white/20 px-2 py-0.5 rounded ml-1">{sentEmailData?.status}</span></p>
                   <p><span className="opacity-60 font-medium">Subject:</span> Join the WorkLink Workspace</p>
                 </div>
               </div>
@@ -380,12 +377,12 @@ export default function TeamPage() {
                 </div>
                 
                 <div className="mt-8 flex flex-col items-center gap-4">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted p-2 px-4 rounded-full">
-                    <Shield className="h-3 w-3" />
-                    <span>Live delivery relies on your SMTP credentials. Check server logs for detailed transmission status.</span>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted p-2 px-4 rounded-full text-center">
+                    <Shield className="h-3 w-3 flex-shrink-0" />
+                    <span>Real-time delivery requires valid SMTP_HOST, SMTP_USER, and SMTP_PASS environment variables.</span>
                   </div>
                   <Button onClick={() => setIsPreviewOpen(false)} className="w-full rounded-2xl h-12 font-bold text-lg shadow-xl shadow-primary/10">
-                    Close Preview
+                    Close Report
                   </Button>
                 </div>
               </div>

@@ -36,8 +36,8 @@ const prompt = ai.definePrompt({
   },
   prompt: `You are the WorkLink automated workspace assistant. 
   
-  Generate a professional, warm, and clear invitation email for {{recipientName}}.
-  They have been invited by {{inviterName}} to join the "{{workspaceName}}" professional workspace.
+  Generate a professional, warm, and clear invitation email for {{{recipientName}}}.
+  They have been invited by {{{inviterName}}} to join the "{{{workspaceName}}}" professional workspace.
   
   The email should:
   1. Clearly state who invited them.
@@ -94,7 +94,6 @@ const sendInvitationEmailFlow = ai.defineFlow(
         } catch (smtpError: any) {
           deliverySuccess = false;
           smtpResult = `SMTP Delivery Error: ${smtpError.message}`;
-          console.error("SMTP Transmission Error:", smtpError);
         }
       }
 
@@ -104,7 +103,6 @@ const sendInvitationEmailFlow = ai.defineFlow(
         emailPreview: emailContent,
       };
     } catch (error: any) {
-      console.error("AI Generation Error:", error);
       return {
         success: false,
         message: `AI Generation failed: ${error.message || 'Unknown error'}`,

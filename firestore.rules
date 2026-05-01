@@ -2,10 +2,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     /**
-     * WORKLINK PRODUCTION RULES
+     * WORKLINK LIVE PRODUCTION RULES
      * Allows all authenticated users full access to documents.
      * This ensures real-time listeners and dashboard queries function without permission errors.
-     * Deployment heartbeat: 2024-03-22T14:30:00Z
+     * Deployment heartbeat: 2024-03-22T15:45:00Z
      */
     match /{document=**} {
       allow read, write: if request.auth != null;
