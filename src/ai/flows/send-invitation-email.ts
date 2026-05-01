@@ -57,7 +57,7 @@ const sendInvitationEmailFlow = ai.defineFlow(
     outputSchema: SendInvitationEmailOutputSchema,
   },
   async (input) => {
-    // 3. Add fallback: Default professional message if AI fails
+    // Static fallback message in case AI fails
     const staticFallbackMessage = `Hi ${input.recipientName},
 
 You've been invited by ${input.inviterName} to join the "${input.workspaceName}" professional workspace on WorkLink. 
@@ -70,23 +70,20 @@ Best regards,
 The ${input.workspaceName} Team`;
 
     let emailContent = staticFallbackMessage;
-    let generationStatus = "Default static message used.";
+    let generationStatus = "Default message used.";
 
     try {
       const { output } = await prompt(input);
       if (output?.emailBody) {
         emailContent = output.emailBody;
-        generationStatus = "AI content generated successfully.";
+        generationStatus = "AI content generated.";
       }
     } catch (error: any) {
-      console.warn("AI Generation failed, using static fallback:", error.message);
-      generationStatus = "AI Fallback triggered.";
+      console.warn("AI Generation failed:", error.message);
+      generationStatus = "AI Generation failed (using fallback).";
     }
 
     // SMTP Configuration from environment variables
-    let smtpResult = "SMTP not configured. Please add SMTP_HOST, SMTP_USER, and SMTP_PASS to environment variables.";
-    let deliverySuccess = false;
-
     const {
       SMTP_HOST,
       SMTP_PORT,
@@ -95,6 +92,9 @@ The ${input.workspaceName} Team`;
       SMTP_FROM,
       SMTP_SECURE
     } = process.env;
+
+    let smtpResult = "SMTP not configured.";
+    let deliverySuccess = false;
 
     if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
       try {
@@ -115,12 +115,14 @@ The ${input.workspaceName} Team`;
           text: emailContent,
         });
         
-        smtpResult = `Invitation successfully delivered to ${input.recipientEmail}.`;
+        smtpResult = `Sent successfully to ${input.recipientEmail}.`;
         deliverySuccess = true;
       } catch (smtpError: any) {
-        smtpResult = `SMTP Delivery Error: ${smtpError.message}`;
+        smtpResult = `SMTP Error: ${smtpError.message}`;
         console.error("SMTP Error:", smtpError);
       }
+    } else {
+      console.warn("SMTP credentials missing from environment variables.");
     }
 
     return {
