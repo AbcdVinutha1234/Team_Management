@@ -1,9 +1,9 @@
 
 'use server';
 /**
- * @fileOverview A Genkit flow that handles generating and "sending" invitation emails.
+ * @fileOverview A Genkit flow that handles generating professional invitation emails for new workspace members.
  *
- * - sendInvitationEmail - A function that triggers the invitation process.
+ * - sendInvitationEmail - A function that triggers the AI generation process.
  * - SendInvitationEmailInput - The input type for the invitation flow.
  * - SendInvitationEmailOutput - The return type for the invitation flow.
  */
@@ -26,10 +26,11 @@ const SendInvitationEmailOutputSchema = z.object({
 });
 export type SendInvitationEmailOutput = z.infer<typeof SendInvitationEmailOutputSchema>;
 
+// Define a prompt that explicitly returns a string for the email body
 const prompt = ai.definePrompt({
   name: 'invitationEmailPrompt',
   input: { schema: SendInvitationEmailInputSchema },
-  output: { schema: z.object({ body: z.string() }) },
+  output: { schema: z.string().describe('The generated email body text.') },
   prompt: `You are the WorkLink automated workspace assistant. 
   
   Generate a professional, warm, and clear invitation email for {{recipientName}}.
@@ -41,7 +42,7 @@ const prompt = ai.definePrompt({
   3. Encourage them to sign up to start collaborating.
   4. Maintain a sleek, modern, and professional tone.
   
-  Return the email body as a string. Keep it concise and impactful.`,
+  Return ONLY the email body as a string. Keep it concise and impactful.`,
 });
 
 export async function sendInvitationEmail(
@@ -57,16 +58,26 @@ const sendInvitationEmailFlow = ai.defineFlow(
     outputSchema: SendInvitationEmailOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
-    
-    // Server-side logging for verification during development
-    console.log(`[SIMULATED EMAIL SYSTEM] Sending invitation to ${input.recipientEmail}...`);
-    console.log(`[CONTENT PREVIEW]:\n${output?.body}`);
+    try {
+      const { output } = await prompt(input);
+      
+      const emailContent = output || `Hi ${input.recipientName}, you've been invited to join ${input.workspaceName} by ${input.inviterName}. We look forward to working with you!`;
 
-    return {
-      success: true,
-      message: `Invitation successfully processed for ${input.recipientEmail}.`,
-      emailPreview: output?.body || 'No content generated.',
-    };
+      // Server-side logging for verification during development
+      console.log(`[SIMULATED EMAIL SYSTEM] Sending invitation to ${input.recipientEmail}...`);
+
+      return {
+        success: true,
+        message: `Invitation successfully processed for ${input.recipientEmail}.`,
+        emailPreview: emailContent,
+      };
+    } catch (error) {
+      console.error('Genkit invitation flow error:', error);
+      return {
+        success: false,
+        message: 'Failed to generate invitation content.',
+        emailPreview: 'Error generating content.',
+      };
+    }
   }
 );

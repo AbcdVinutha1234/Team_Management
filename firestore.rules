@@ -4,36 +4,32 @@ service cloud.firestore {
   match /databases/{database}/documents {
     /**
      * WORKLINK SECURITY MODEL
-     * Highly permissive read for all authenticated users to ensure stability during MVP development.
-     * Write access restricted based on common sense logic for a collaborative workspace.
+     * Permissive read/write for all authenticated users to facilitate rapid prototyping
+     * and collaborative team management (invitations, task assignments).
      */
 
     function isSignedIn() {
       return request.auth != null;
     }
 
+    // Explicitly allow access to core collections for any signed-in user
     match /users/{userId} {
-      // Allow any signed-in user to see team profiles
       allow read: if isSignedIn();
-      // Only the user can update their own profile
-      allow write: if isSignedIn() && request.auth.uid == userId;
+      // Allow any signed-in user to create/update profiles (supports invitations and self-signup)
+      allow write: if isSignedIn();
     }
 
     match /projects/{projectId} {
-      // Allow any signed-in user to read and list projects
       allow read: if isSignedIn();
-      // Allow project creation and modification for now to keep prototyping simple
       allow write: if isSignedIn();
     }
 
     match /tasks/{taskId} {
-      // Allow any signed-in user to read and list tasks
       allow read: if isSignedIn();
-      // Allow task management for signed-in users
       allow write: if isSignedIn();
     }
 
-    // Fallback for any other collection
+    // Fallback for any other collection or nested path
     match /{document=**} {
       allow read, write: if isSignedIn();
     }

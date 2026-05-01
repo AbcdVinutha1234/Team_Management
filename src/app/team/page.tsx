@@ -6,7 +6,7 @@ import { AppSidebar } from "@/components/layout/sidebar-nav";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mail, Shield, MoreVertical, Search, UserPlus, Loader2, CheckCircle2, X } from "lucide-react";
+import { Mail, Shield, MoreVertical, Search, UserPlus, Loader2, CheckCircle2, X, AlertCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -60,7 +60,7 @@ export default function TeamPage() {
     return query(collection(db, "users"), orderBy("name"));
   }, [isMounted, db]);
 
-  const { data: users, isLoading: loading } = useCollection<User>(usersQuery);
+  const { data: users, isLoading: loading, error: fetchError } = useCollection<User>(usersQuery);
 
   const handleRemoveMember = (id: string, name: string) => {
     if (!db) return;
@@ -93,11 +93,12 @@ export default function TeamPage() {
       lastName: newUserName.split(' ').slice(1).join(' ') || '',
       email: newUserEmail,
       role: newUserRole,
-      avatarUrl: `https://picsum.photos/seed/${inviteId}/100/100`,
+      avatarUrl: `https://picsum.photos/seed/${inviteId}/200/200`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
+    // First save to database, then generate email
     setDoc(doc(db, 'users', inviteId), userData)
       .then(async () => {
         const recipientEmail = newUserEmail;
@@ -109,8 +110,8 @@ export default function TeamPage() {
         setNewUserRole("Member");
 
         toast({
-          title: "Member Added",
-          description: `User ${recipientName} added to workspace. Generating invitation...`,
+          title: "Profile Created",
+          description: `Generating AI invitation for ${recipientName}...`,
         });
         
         try {
@@ -121,26 +122,30 @@ export default function TeamPage() {
             workspaceName: "WorkLink"
           });
           
-          setSentEmailData({
-            recipientEmail: recipientEmail,
-            content: result.emailPreview
-          });
-          setIsPreviewOpen(true);
-
-          toast({
-            title: "Invitation Generated",
-            description: `Preview the email for ${recipientEmail} now.`,
-          });
+          if (result.success) {
+            setSentEmailData({
+              recipientEmail: recipientEmail,
+              content: result.emailPreview
+            });
+            setIsPreviewOpen(true);
+            toast({
+              title: "Invitation Ready",
+              description: "You can now preview the generated email.",
+            });
+          } else {
+            throw new Error(result.message);
+          }
         } catch (error) {
-          console.error("Failed to generate invitation email:", error);
+          console.error("AI Generation failed:", error);
           toast({
             variant: "destructive",
-            title: "Generation Failed",
-            description: "Member was added, but the invitation preview could not be generated.",
+            title: "AI Failed",
+            description: "Member was added, but the invitation could not be generated.",
           });
         }
       })
-      .catch(async () => {
+      .catch(async (err) => {
+        console.error("Firestore error:", err);
         const permissionError = new FirestorePermissionError({
           path: `users/${inviteId}`,
           operation: 'create',
@@ -225,7 +230,7 @@ export default function TeamPage() {
                     </div>
                     <DialogFooter>
                       <Button type="submit" disabled={isInviting} className="w-full rounded-xl font-bold shadow-lg shadow-primary/20">
-                        {isInviting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Invite Member"}
+                        {isInviting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Send Invitation"}
                       </Button>
                     </DialogFooter>
                   </form>
@@ -251,20 +256,30 @@ export default function TeamPage() {
               <div className="flex items-center justify-center py-20">
                 <Loader2 className="h-10 w-10 animate-spin text-primary/40" />
               </div>
+            ) : fetchError ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
+                <div className="bg-destructive/10 p-4 rounded-full">
+                  <AlertCircle className="h-10 w-10 text-destructive" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">Failed to load team</h3>
+                  <p className="text-sm text-muted-foreground">Check your permissions or internet connection.</p>
+                </div>
+              </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredUsers?.map((user) => (
-                  <Card key={user.id} className="border-none shadow-sm hover:shadow-md transition-all duration-300 rounded-3xl overflow-hidden group bg-white">
+                {filteredUsers?.map((u) => (
+                  <Card key={u.id} className="border-none shadow-sm hover:shadow-md transition-all duration-300 rounded-3xl overflow-hidden group bg-white">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                       <div className="flex items-center gap-4">
                         <Avatar className="h-12 w-12 border-2 border-primary/10 shadow-sm">
-                          <AvatarImage src={user.avatarUrl} alt={user.name} />
-                          <AvatarFallback>{user.name[0]}</AvatarFallback>
+                          <AvatarImage src={u.avatarUrl || `https://picsum.photos/seed/${u.id}/200/200`} alt={u.name} />
+                          <AvatarFallback>{u.name[0]}</AvatarFallback>
                         </Avatar>
                         <div>
-                          <CardTitle className="text-lg font-bold font-headline">{user.name}</CardTitle>
-                          <Badge variant={user.role === 'Admin' ? 'default' : 'secondary'} className="text-[10px] uppercase font-bold mt-1">
-                            {user.role}
+                          <CardTitle className="text-lg font-bold font-headline">{u.name}</CardTitle>
+                          <Badge variant={u.role === 'Admin' ? 'default' : 'secondary'} className="text-[10px] uppercase font-bold mt-1">
+                            {u.role}
                           </Badge>
                         </div>
                       </div>
@@ -276,11 +291,11 @@ export default function TeamPage() {
                       <div className="space-y-3">
                         <div className="flex items-center gap-3 text-sm text-muted-foreground bg-muted/30 p-2 rounded-xl">
                           <Mail className="h-4 w-4 text-primary" />
-                          <span className="truncate font-medium">{user.email}</span>
+                          <span className="truncate font-medium">{u.email}</span>
                         </div>
                         <div className="flex items-center gap-3 text-sm text-muted-foreground">
                           <Shield className="h-4 w-4 text-primary/60" />
-                          <span>{user.role === 'Admin' ? 'Admin Access' : 'Limited Access'}</span>
+                          <span>{u.role === 'Admin' ? 'Admin Access' : 'Limited Access'}</span>
                         </div>
                       </div>
 
@@ -290,7 +305,7 @@ export default function TeamPage() {
                         </Button>
                         <Button
                           variant="ghost"
-                          onClick={() => handleRemoveMember(user.id, user.name)}
+                          onClick={() => handleRemoveMember(u.id, u.name)}
                           className="rounded-xl text-xs font-bold h-9 text-destructive hover:bg-destructive/5"
                         >
                           Remove
@@ -327,8 +342,8 @@ export default function TeamPage() {
                         <Mail className="h-6 w-6" />
                       </div>
                       <div>
-                        <DialogTitle className="text-xl font-bold font-headline text-primary-foreground">Invitation Delivered</DialogTitle>
-                        <DialogDescription className="text-primary-foreground/70 text-sm">Simulation Mode: Prototype Preview</DialogDescription>
+                        <DialogTitle className="text-xl font-bold font-headline text-primary-foreground">Invitation Generated</DialogTitle>
+                        <DialogDescription className="text-primary-foreground/70 text-sm">Previewing the AI-generated message</DialogDescription>
                       </div>
                     </div>
                     <Button 
@@ -344,7 +359,7 @@ export default function TeamPage() {
                 
                 <div className="space-y-2 text-sm bg-white/10 p-4 rounded-2xl border border-white/10">
                   <p><span className="opacity-60 font-medium">To:</span> {sentEmailData?.recipientEmail}</p>
-                  <p><span className="opacity-60 font-medium">From:</span> WorkLink Notifications &lt;no-reply@worklink.ai&gt;</p>
+                  <p><span className="opacity-60 font-medium">From:</span> WorkLink Assistant &lt;no-reply@worklink.ai&gt;</p>
                   <p><span className="opacity-60 font-medium">Subject:</span> You've been invited to join the WorkLink workspace</p>
                 </div>
               </div>
@@ -362,10 +377,10 @@ export default function TeamPage() {
                 <div className="mt-8 flex flex-col items-center gap-4">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted p-2 px-4 rounded-full">
                     <Shield className="h-3 w-3" />
-                    <span>In a live environment, this would be delivered via SendGrid or Postmark.</span>
+                    <span>Prototype Simulation: In production, this would be delivered via a real SMTP service.</span>
                   </div>
                   <Button onClick={() => setIsPreviewOpen(false)} className="w-full rounded-2xl h-12 font-bold text-lg shadow-xl shadow-primary/10">
-                    Done
+                    Looks Good
                   </Button>
                 </div>
               </div>
