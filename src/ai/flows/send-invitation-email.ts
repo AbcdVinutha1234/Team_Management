@@ -62,7 +62,7 @@ const sendInvitationEmailFlow = ai.defineFlow(
   },
   async (input) => {
     try {
-      // Execute the prompt with the input
+      // Execute the prompt with the input using the global ai config
       const { output } = await prompt(input);
       const emailContent = output?.emailBody || `Hi ${input.recipientName}, you've been invited to join ${input.workspaceName} by ${input.inviterName}. We look forward to working with you!`;
 
@@ -103,6 +103,7 @@ const sendInvitationEmailFlow = ai.defineFlow(
         emailPreview: emailContent,
       };
     } catch (error: any) {
+      console.error("AI Generation failure in flow:", error);
       return {
         success: false,
         message: `AI Generation failed: ${error.message || 'Unknown error'}`,
