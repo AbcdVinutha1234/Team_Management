@@ -68,7 +68,8 @@ const aiTaskDetailSuggestionFlow = ai.defineFlow(
     try {
       const {output} = await prompt(input);
       return output!;
-    } catch (error) {
+    } catch (error: any) {
+      console.warn("AI Task Suggestion failed, using fallback:", error.message);
       // Fallback if AI fails
       return {
         detailedDescription: `Task: ${input.taskTitle}. Please provide further details for this task.`,
