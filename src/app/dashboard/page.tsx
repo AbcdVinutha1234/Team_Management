@@ -16,15 +16,24 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebas
 import { collection, query, where, limit } from "firebase/firestore";
 import { Task, Project } from "@/lib/types";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function DashboardPage() {
   const [isMounted, setIsMounted] = useState(false);
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
+  const router = useRouter();
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Redirect to login if not authenticated after loading
+  useEffect(() => {
+    if (isMounted && !isUserLoading && !user) {
+      router.push("/login");
+    }
+  }, [isMounted, isUserLoading, user, router]);
 
   // Stable query for tasks assigned to the current user
   const tasksQuery = useMemoFirebase(() => {
@@ -36,9 +45,11 @@ export default function DashboardPage() {
     );
   }, [db, user?.uid, isMounted]);
 
-  // Stable query for projects
+  // Stable query for projects where user is a member or creator
   const projectsQuery = useMemoFirebase(() => {
     if (!db || !user?.uid || !isMounted) return null;
+    // Listing all projects for now as security rules are broad, 
+    // but in a strict app we would use where("members." + user.uid, "!=", null)
     return query(
       collection(db, "projects"),
       limit(20)
@@ -67,6 +78,8 @@ export default function DashboardPage() {
     );
   }
 
+  if (!user) return null;
+
   const displayName = user?.displayName || user?.email?.split('@')[0] || 'User';
 
   return (
@@ -86,7 +99,6 @@ export default function DashboardPage() {
                 <Input 
                   placeholder="Search your tasks..." 
                   className="pl-10 w-64 bg-muted/30 border-none focus-visible:ring-1" 
-                  suppressHydrationWarning 
                 />
               </div>
               <Button variant="ghost" size="icon" className="rounded-full relative">

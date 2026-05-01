@@ -1,15 +1,16 @@
 
 'use server';
 /**
- * @fileOverview A Genkit flow that handles generating professional invitation emails for new workspace members.
+ * @fileOverview A Genkit flow that handles generating professional invitation emails and sending them via SMTP.
  *
- * - sendInvitationEmail - A function that triggers the AI generation process.
+ * - sendInvitationEmail - A function that triggers the AI generation and SMTP process.
  * - SendInvitationEmailInput - The input type for the invitation flow.
  * - SendInvitationEmailOutput - The return type for the invitation flow.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import nodemailer from 'nodemailer';
 
 const SendInvitationEmailInputSchema = z.object({
   recipientName: z.string().describe('The name of the person being invited.'),
@@ -26,7 +27,6 @@ const SendInvitationEmailOutputSchema = z.object({
 });
 export type SendInvitationEmailOutput = z.infer<typeof SendInvitationEmailOutputSchema>;
 
-// Define a prompt that returns a structured object for robustness
 const prompt = ai.definePrompt({
   name: 'invitationEmailPrompt',
   input: { schema: SendInvitationEmailInputSchema },
@@ -34,14 +34,6 @@ const prompt = ai.definePrompt({
     schema: z.object({
       emailBody: z.string().describe('The generated email body text.')
     }) 
-  },
-  config: {
-    safetySettings: [
-      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-    ]
   },
   prompt: `You are the WorkLink automated workspace assistant. 
   
@@ -72,22 +64,42 @@ const sendInvitationEmailFlow = ai.defineFlow(
   async (input) => {
     try {
       const { output } = await prompt(input);
-      
       const emailContent = output?.emailBody || `Hi ${input.recipientName}, you've been invited to join ${input.workspaceName} by ${input.inviterName}. We look forward to working with you!`;
 
-      // Server-side logging for verification during development
-      console.log(`[SIMULATED EMAIL SYSTEM] Sending invitation to ${input.recipientEmail}...`);
+      // Check if SMTP is configured
+      if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+        const transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: Number(process.env.SMTP_PORT) || 587,
+          secure: process.env.SMTP_SECURE === 'true',
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+          },
+        });
+
+        await transporter.sendMail({
+          from: process.env.SMTP_FROM || '"WorkLink" <invites@worklink.ai>',
+          to: input.recipientEmail,
+          subject: `Join ${input.workspaceName}`,
+          text: emailContent,
+        });
+        
+        console.log(`[SMTP] Invitation successfully sent to ${input.recipientEmail}`);
+      } else {
+        console.warn('[SMTP] SMTP credentials missing. Simulation mode enabled.');
+      }
 
       return {
         success: true,
-        message: `Invitation successfully processed for ${input.recipientEmail}.`,
+        message: `Invitation processed for ${input.recipientEmail}.`,
         emailPreview: emailContent,
       };
     } catch (error: any) {
       console.error('Genkit invitation flow error:', error);
       return {
         success: false,
-        message: `Failed to generate invitation content: ${error.message || 'Unknown error'}`,
+        message: `Failed to process invitation: ${error.message || 'Unknown error'}`,
         emailPreview: `Hi ${input.recipientName}, you have been invited to join ${input.workspaceName}. (System fallback message)`,
       };
     }
