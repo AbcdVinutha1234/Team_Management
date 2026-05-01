@@ -103,8 +103,7 @@ export function CreateTaskModal({ children }: { children?: React.ReactNode }) {
     const project = projects?.find(p => p.id === selectedProjectId);
     
     // Denormalize members for security rule check
-    // We expect the project to have a members map from Firestore
-    const projectMembers = (project as any)?.members || { [user.uid]: 'Admin' };
+    const projectMembers = project?.members || { [user.uid]: 'Admin' };
 
     const taskData = {
       id: taskId,
@@ -126,7 +125,7 @@ export function CreateTaskModal({ children }: { children?: React.ReactNode }) {
       .then(() => {
         toast({
           title: "Task created",
-          description: "Task successfully saved to Firestore.",
+          description: "Task successfully saved.",
         });
         resetForm();
       })
@@ -175,7 +174,8 @@ export function CreateTaskModal({ children }: { children?: React.ReactNode }) {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              className="rounded-xl border-muted-foreground/20 focus-visible:ring-primary"
+              className="rounded-xl border-muted-foreground/20"
+              suppressHydrationWarning
             />
           </div>
 
@@ -221,7 +221,7 @@ export function CreateTaskModal({ children }: { children?: React.ReactNode }) {
                 className="text-xs h-8 rounded-full bg-primary/5 border-primary/20 text-primary hover:bg-primary hover:text-white transition-all gap-1.5"
               >
                 {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                AI Auto-fill
+                AI Suggest
               </Button>
             </div>
             <Textarea 
