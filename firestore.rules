@@ -31,6 +31,8 @@ service cloud.firestore {
     }
 
     match /projects/{projectId} {
+      // Allow listing projects if signed in. 
+      // Users will typically query projects where they are members.
       allow list: if isSignedIn();
       allow get: if isSignedIn() && isMember(resource.data.members);
       allow create: if isSignedIn();
@@ -45,22 +47,24 @@ service cloud.firestore {
 
     match /tasks/{taskId} {
       // Allow listing tasks for any signed-in user.
-      // In a production app, you might constrain this to query filters,
-      // but 'isSignedIn()' is the standard MVP baseline.
       allow list: if isSignedIn();
       
-      // Allow getting a specific task if the user is signed in.
-      allow get: if isSignedIn();
+      // Allow getting a specific task if the user is a member of the project or assigned.
+      allow get: if isSignedIn() && (
+        resource.data.assignedToId == request.auth.uid || 
+        resource.data.createdBy == request.auth.uid ||
+        isMember(resource.data.projectMembers)
+      );
       
-      // Allow creation if signed in.
       allow create: if isSignedIn();
       
-      // Allow updates if signed in.
-      allow update: if isSignedIn();
+      allow update: if isSignedIn() && (
+        resource.data.assignedToId == request.auth.uid || 
+        isMember(resource.data.projectMembers)
+      );
       
-      // Allow deletion if the user is an admin or the creator.
       allow delete: if isSignedIn() && (
-        (resource.data.projectMembers != null && resource.data.projectMembers[request.auth.uid] == 'Admin') || 
+        isAdmin(resource.data.projectMembers) || 
         resource.data.createdBy == request.auth.uid
       );
     }

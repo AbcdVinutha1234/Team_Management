@@ -26,6 +26,7 @@ import {
   SidebarGroupContent,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useUser } from "@/firebase";
 
 const navItems = [
   { title: "Dashboard", icon: LayoutDashboard, url: "/dashboard" },
@@ -36,6 +37,7 @@ const navItems = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { user } = useUser();
 
   return (
     <Sidebar className="border-r border-border">
@@ -80,12 +82,12 @@ export function AppSidebar() {
       <SidebarFooter className="p-4 mt-auto">
         <div className="flex items-center gap-4 p-4 rounded-2xl bg-muted/50">
           <Avatar className="h-10 w-10 border-2 border-background shadow-sm">
-            <AvatarImage src="https://picsum.photos/seed/user1/100/100" />
-            <AvatarFallback>AR</AvatarFallback>
+            <AvatarImage src={user?.photoURL || `https://picsum.photos/seed/${user?.uid || 'default'}/100/100`} />
+            <AvatarFallback>{user?.displayName?.[0] || 'U'}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col overflow-hidden">
-            <span className="text-sm font-bold truncate">Alex Rivera</span>
-            <span className="text-xs text-muted-foreground truncate">Admin</span>
+            <span className="text-sm font-bold truncate">{user?.displayName || 'User'}</span>
+            <span className="text-xs text-muted-foreground truncate">{user?.email || 'Active'}</span>
           </div>
           <button className="ml-auto p-2 text-muted-foreground hover:text-destructive transition-colors">
             <LogOut className="h-4 w-4" />
