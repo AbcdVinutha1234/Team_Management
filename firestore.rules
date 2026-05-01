@@ -20,7 +20,7 @@ service cloud.firestore {
     }
 
     function isAdmin(memberMap) {
-      return isSignedIn() && memberMap != null && memberMap[request.auth.uid] == 'Admin';
+      return isSignedIn() && memberMap != null && (memberMap[request.auth.uid] == 'Admin' || memberMap[request.auth.uid] == 'Owner');
     }
 
     match /users/{userId} {
@@ -33,7 +33,7 @@ service cloud.firestore {
 
     match /projects/{projectId} {
       // Allow signed-in users to list and get projects. 
-      // Individual get access is checked by membership or ownership.
+      // Individual access is typically checked by membership in the app.
       allow read: if isSignedIn();
       
       allow create: if isSignedIn();
@@ -55,11 +55,9 @@ service cloud.firestore {
     }
 
     match /tasks/{taskId} {
-      // Allow signed-in users to list tasks. 
-      // Queries are filtered in the application to show relevant tasks.
-      allow list: if isSignedIn();
-      
-      allow get: if isSignedIn();
+      // Allow signed-in users to read tasks.
+      // Queries are restricted in the application to relevant tasks.
+      allow read: if isSignedIn();
       
       allow create: if isSignedIn();
       

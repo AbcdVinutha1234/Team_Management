@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
@@ -9,20 +10,27 @@ import { Task } from "@/lib/types";
 import { Loader2 } from "lucide-react";
 
 export function RecentActivity() {
+  const [isMounted, setIsMounted] = useState(false);
   const db = useFirestore();
   const { user } = useUser();
 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const activityQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
+    if (!db || !user || !isMounted) return null;
     return query(
       collection(db, "tasks"),
       where("assignedToId", "==", user.uid),
       orderBy("createdAt", "desc"),
       limit(5)
     );
-  }, [db, user?.uid]);
+  }, [db, user?.uid, isMounted]);
 
   const { data: tasks, isLoading } = useCollection<Task>(activityQuery);
+
+  if (!isMounted) return null;
 
   return (
     <Card className="border-none shadow-sm">
