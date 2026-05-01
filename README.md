@@ -1,5 +1,9 @@
-# Firebase Studio
+#Team Task Manager – Full Stack Web Application
 
-This is a NextJS starter in Firebase Studio.
+Tech Stack:
 
-To get started, take a look at src/app/page.tsx.
+Frontend: Next.js + React + Tailwind CSS
+Backend: Firebase / Firestore
+Authentication: Firebase Authentication
+Deployment: Vercel
+UI Components: shadcn/ui
