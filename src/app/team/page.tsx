@@ -20,6 +20,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
@@ -99,11 +100,9 @@ export default function TeamPage() {
 
     setDoc(doc(db, 'users', inviteId), userData)
       .then(async () => {
-        // Store current details for the preview before clearing
         const recipientEmail = newUserEmail;
         const recipientName = newUserName;
 
-        // Reset form
         setIsInviteModalOpen(false);
         setNewUserName("");
         setNewUserEmail("");
@@ -114,7 +113,6 @@ export default function TeamPage() {
           description: `User ${recipientName} added to workspace. Generating invitation...`,
         });
         
-        // Trigger the Genkit Flow to generate the invitation email content
         try {
           const result = await sendInvitationEmail({
             recipientName: recipientName,
@@ -184,6 +182,7 @@ export default function TeamPage() {
                 <DialogContent className="sm:max-w-[425px] rounded-3xl p-8">
                   <DialogHeader>
                     <DialogTitle className="text-xl font-bold font-headline">Invite Collaborator</DialogTitle>
+                    <DialogDescription>Add a new member to your workspace and define their access level.</DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleInviteMember} className="space-y-6 py-4">
                     <div className="space-y-2">
@@ -321,25 +320,27 @@ export default function TeamPage() {
           <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
             <DialogContent className="sm:max-w-[600px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
               <div className="bg-primary p-8 text-primary-foreground relative">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-white/20 p-2 rounded-xl">
-                      <Mail className="h-6 w-6" />
+                <DialogHeader className="p-0">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-white/20 p-2 rounded-xl">
+                        <Mail className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <DialogTitle className="text-xl font-bold font-headline text-primary-foreground">Invitation Delivered</DialogTitle>
+                        <DialogDescription className="text-primary-foreground/70 text-sm">Simulation Mode: Prototype Preview</DialogDescription>
+                      </div>
                     </div>
-                    <div>
-                      <h2 className="text-xl font-bold font-headline">Invitation Delivered</h2>
-                      <p className="text-primary-foreground/70 text-sm">Simulation Mode: Prototype Preview</p>
-                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => setIsPreviewOpen(false)}
+                      className="text-primary-foreground hover:bg-white/10 rounded-full"
+                    >
+                      <X className="h-5 w-5" />
+                    </Button>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => setIsPreviewOpen(false)}
-                    className="text-primary-foreground hover:bg-white/10 rounded-full"
-                  >
-                    <X className="h-5 w-5" />
-                  </Button>
-                </div>
+                </DialogHeader>
                 
                 <div className="space-y-2 text-sm bg-white/10 p-4 rounded-2xl border border-white/10">
                   <p><span className="opacity-60 font-medium">To:</span> {sentEmailData?.recipientEmail}</p>
