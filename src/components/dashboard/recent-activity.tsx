@@ -19,7 +19,7 @@ export function RecentActivity() {
   }, []);
 
   const activityQuery = useMemoFirebase(() => {
-    if (!db || !user || !isMounted) return null;
+    if (!db || !user?.uid || !isMounted) return null;
     return query(
       collection(db, "tasks"),
       where("assignedToId", "==", user.uid),

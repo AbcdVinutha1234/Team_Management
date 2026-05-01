@@ -46,7 +46,6 @@ export default function DashboardPage() {
 
   const projectsQuery = useMemoFirebase(() => {
     if (!db || !user?.uid || !isMounted) return null;
-    // Querying projects where user is a member using the denormalized map
     return query(
       collection(db, "projects"), 
       where(`members.${user.uid}`, "!=", null)
