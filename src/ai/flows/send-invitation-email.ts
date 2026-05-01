@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A Genkit flow that handles generating and "sending" invitation emails.
@@ -40,7 +41,7 @@ const prompt = ai.definePrompt({
   3. Encourage them to sign up to start collaborating.
   4. Maintain a sleek, modern, and professional tone.
   
-  Return the email body as a string.`,
+  Return the email body as a string. Keep it concise and impactful.`,
 });
 
 export async function sendInvitationEmail(
@@ -58,9 +59,7 @@ const sendInvitationEmailFlow = ai.defineFlow(
   async (input) => {
     const { output } = await prompt(input);
     
-    // In a production environment, this is where you would integrate with an 
-    // email service like SendGrid, Postmark, or Firebase Extensions (Trigger Email).
-    // For this prototype, we simulate the 'send' action.
+    // Server-side logging for verification during development
     console.log(`[SIMULATED EMAIL SYSTEM] Sending invitation to ${input.recipientEmail}...`);
     console.log(`[CONTENT PREVIEW]:\n${output?.body}`);
 

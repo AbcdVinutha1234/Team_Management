@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -5,7 +6,7 @@ import { AppSidebar } from "@/components/layout/sidebar-nav";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mail, Shield, MoreVertical, Search, UserPlus, Loader2 } from "lucide-react";
+import { Mail, Shield, MoreVertical, Search, UserPlus, Loader2, CheckCircle2, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -41,6 +42,9 @@ export default function TeamPage() {
   const { user: currentUser } = useUser();
 
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [sentEmailData, setSentEmailData] = useState<{ recipientEmail: string; content: string } | null>(null);
+  
   const [newUserName, setNewUserName] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserRole, setNewUserRole] = useState<"Admin" | "Member">("Member");
@@ -95,37 +99,48 @@ export default function TeamPage() {
 
     setDoc(doc(db, 'users', inviteId), userData)
       .then(async () => {
-        toast({
-          title: "Member Added",
-          description: `User ${newUserName} added to workspace. Sending email...`,
-        });
-        
-        // Trigger the Genkit Flow to "send" the invitation email
-        try {
-          await sendInvitationEmail({
-            recipientName: newUserName,
-            recipientEmail: newUserEmail,
-            inviterName: currentUser?.displayName || currentUser?.email || "A workspace admin",
-            workspaceName: "WorkLink"
-          });
-          
-          toast({
-            title: "Email Sent",
-            description: `Invitation email has been delivered to ${newUserEmail}.`,
-          });
-        } catch (error) {
-          console.error("Failed to send invitation email:", error);
-          toast({
-            variant: "destructive",
-            title: "Email Failed",
-            description: "Member was added, but the invitation email could not be sent.",
-          });
-        }
+        // Store current details for the preview before clearing
+        const recipientEmail = newUserEmail;
+        const recipientName = newUserName;
 
+        // Reset form
         setIsInviteModalOpen(false);
         setNewUserName("");
         setNewUserEmail("");
         setNewUserRole("Member");
+
+        toast({
+          title: "Member Added",
+          description: `User ${recipientName} added to workspace. Generating invitation...`,
+        });
+        
+        // Trigger the Genkit Flow to generate the invitation email content
+        try {
+          const result = await sendInvitationEmail({
+            recipientName: recipientName,
+            recipientEmail: recipientEmail,
+            inviterName: currentUser?.displayName || currentUser?.email || "A workspace admin",
+            workspaceName: "WorkLink"
+          });
+          
+          setSentEmailData({
+            recipientEmail: recipientEmail,
+            content: result.emailPreview
+          });
+          setIsPreviewOpen(true);
+
+          toast({
+            title: "Invitation Generated",
+            description: `Preview the email for ${recipientEmail} now.`,
+          });
+        } catch (error) {
+          console.error("Failed to generate invitation email:", error);
+          toast({
+            variant: "destructive",
+            title: "Generation Failed",
+            description: "Member was added, but the invitation preview could not be generated.",
+          });
+        }
       })
       .catch(async () => {
         const permissionError = new FirestorePermissionError({
@@ -301,6 +316,60 @@ export default function TeamPage() {
               </div>
             )}
           </main>
+
+          {/* Email Simulation Preview Dialog */}
+          <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+            <DialogContent className="sm:max-w-[600px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
+              <div className="bg-primary p-8 text-primary-foreground relative">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white/20 p-2 rounded-xl">
+                      <Mail className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold font-headline">Invitation Delivered</h2>
+                      <p className="text-primary-foreground/70 text-sm">Simulation Mode: Prototype Preview</p>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => setIsPreviewOpen(false)}
+                    className="text-primary-foreground hover:bg-white/10 rounded-full"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+                
+                <div className="space-y-2 text-sm bg-white/10 p-4 rounded-2xl border border-white/10">
+                  <p><span className="opacity-60 font-medium">To:</span> {sentEmailData?.recipientEmail}</p>
+                  <p><span className="opacity-60 font-medium">From:</span> WorkLink Notifications &lt;no-reply@worklink.ai&gt;</p>
+                  <p><span className="opacity-60 font-medium">Subject:</span> You've been invited to join the WorkLink workspace</p>
+                </div>
+              </div>
+
+              <div className="p-8 bg-white">
+                <div className="bg-muted/30 p-8 rounded-3xl border border-dashed border-primary/20 relative">
+                  <div className="absolute top-4 right-4 opacity-10">
+                    <CheckCircle2 className="h-12 w-12 text-primary" />
+                  </div>
+                  <div className="prose prose-sm max-w-none whitespace-pre-wrap font-body text-slate-700 leading-relaxed italic">
+                    {sentEmailData?.content}
+                  </div>
+                </div>
+                
+                <div className="mt-8 flex flex-col items-center gap-4">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted p-2 px-4 rounded-full">
+                    <Shield className="h-3 w-3" />
+                    <span>In a live environment, this would be delivered via SendGrid or Postmark.</span>
+                  </div>
+                  <Button onClick={() => setIsPreviewOpen(false)} className="w-full rounded-2xl h-12 font-bold text-lg shadow-xl shadow-primary/10">
+                    Done
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </SidebarInset>
       </div>
     </SidebarProvider>
