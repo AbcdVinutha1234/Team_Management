@@ -133,14 +133,24 @@ export default function TeamPage() {
               description: "You can now preview the generated email.",
             });
           } else {
-            throw new Error(result.message);
+            // Fallback if AI generation failed but we still want to show a preview
+            setSentEmailData({
+              recipientEmail: recipientEmail,
+              content: result.emailPreview || `Hi ${recipientName}, you've been invited to join WorkLink.`
+            });
+            setIsPreviewOpen(true);
+            toast({
+              variant: "destructive",
+              title: "AI Generation Delayed",
+              description: "Member added with default invitation.",
+            });
           }
         } catch (error) {
           console.error("AI Generation failed:", error);
           toast({
             variant: "destructive",
-            title: "AI Failed",
-            description: "Member was added, but the invitation could not be generated.",
+            title: "System Busy",
+            description: "Member added, but invitation preview is unavailable.",
           });
         }
       })
@@ -343,7 +353,7 @@ export default function TeamPage() {
                       </div>
                       <div>
                         <DialogTitle className="text-xl font-bold font-headline text-primary-foreground">Invitation Generated</DialogTitle>
-                        <DialogDescription className="text-primary-foreground/70 text-sm">Previewing the AI-generated message</DialogDescription>
+                        <DialogDescription className="text-primary-foreground/70 text-sm">Previewing the generated message</DialogDescription>
                       </div>
                     </div>
                     <Button 

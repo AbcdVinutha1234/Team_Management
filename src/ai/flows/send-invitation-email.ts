@@ -26,11 +26,23 @@ const SendInvitationEmailOutputSchema = z.object({
 });
 export type SendInvitationEmailOutput = z.infer<typeof SendInvitationEmailOutputSchema>;
 
-// Define a prompt that explicitly returns a string for the email body
+// Define a prompt that returns a structured object for robustness
 const prompt = ai.definePrompt({
   name: 'invitationEmailPrompt',
   input: { schema: SendInvitationEmailInputSchema },
-  output: { schema: z.string().describe('The generated email body text.') },
+  output: { 
+    schema: z.object({
+      emailBody: z.string().describe('The generated email body text.')
+    }) 
+  },
+  config: {
+    safetySettings: [
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+    ]
+  },
   prompt: `You are the WorkLink automated workspace assistant. 
   
   Generate a professional, warm, and clear invitation email for {{recipientName}}.
@@ -42,7 +54,7 @@ const prompt = ai.definePrompt({
   3. Encourage them to sign up to start collaborating.
   4. Maintain a sleek, modern, and professional tone.
   
-  Return ONLY the email body as a string. Keep it concise and impactful.`,
+  Return the result as a JSON object with an 'emailBody' field containing the text.`,
 });
 
 export async function sendInvitationEmail(
@@ -61,7 +73,7 @@ const sendInvitationEmailFlow = ai.defineFlow(
     try {
       const { output } = await prompt(input);
       
-      const emailContent = output || `Hi ${input.recipientName}, you've been invited to join ${input.workspaceName} by ${input.inviterName}. We look forward to working with you!`;
+      const emailContent = output?.emailBody || `Hi ${input.recipientName}, you've been invited to join ${input.workspaceName} by ${input.inviterName}. We look forward to working with you!`;
 
       // Server-side logging for verification during development
       console.log(`[SIMULATED EMAIL SYSTEM] Sending invitation to ${input.recipientEmail}...`);
@@ -71,12 +83,12 @@ const sendInvitationEmailFlow = ai.defineFlow(
         message: `Invitation successfully processed for ${input.recipientEmail}.`,
         emailPreview: emailContent,
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Genkit invitation flow error:', error);
       return {
         success: false,
-        message: 'Failed to generate invitation content.',
-        emailPreview: 'Error generating content.',
+        message: `Failed to generate invitation content: ${error.message || 'Unknown error'}`,
+        emailPreview: `Hi ${input.recipientName}, you have been invited to join ${input.workspaceName}. (System fallback message)`,
       };
     }
   }
