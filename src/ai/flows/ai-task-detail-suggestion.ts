@@ -43,6 +43,7 @@ export async function aiTaskDetailSuggestion(
 
 const prompt = ai.definePrompt({
   name: 'aiTaskDetailSuggestionPrompt',
+  model: 'googleai/gemini-1.5-flash',
   input: {schema: AITaskDetailSuggestionInputSchema},
   output: {schema: AITaskDetailSuggestionOutputSchema},
   prompt: `You are an expert project manager. Your goal is to help users quickly define tasks.
@@ -64,7 +65,15 @@ const aiTaskDetailSuggestionFlow = ai.defineFlow(
     outputSchema: AITaskDetailSuggestionOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    try {
+      const {output} = await prompt(input);
+      return output!;
+    } catch (error) {
+      // Fallback if AI fails
+      return {
+        detailedDescription: `Task: ${input.taskTitle}. Please provide further details for this task.`,
+        subtasks: ["Initial research", "Core implementation", "Final review"]
+      };
+    }
   }
 );
