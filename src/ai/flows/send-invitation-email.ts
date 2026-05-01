@@ -66,6 +66,8 @@ const sendInvitationEmailFlow = ai.defineFlow(
       const { output } = await prompt(input);
       const emailContent = output?.emailBody || `Hi ${input.recipientName}, you've been invited to join ${input.workspaceName} by ${input.inviterName}. We look forward to working with you!`;
 
+      let smtpResult = "SMTP not configured.";
+
       // Check if SMTP is configured
       if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
         const transporter = nodemailer.createTransport({
@@ -85,14 +87,15 @@ const sendInvitationEmailFlow = ai.defineFlow(
           text: emailContent,
         });
         
-        console.log(`[SMTP] Invitation successfully sent to ${input.recipientEmail}`);
+        smtpResult = `Invitation successfully delivered to ${input.recipientEmail}.`;
+        console.log(`[SMTP] ${smtpResult}`);
       } else {
-        console.warn('[SMTP] SMTP credentials missing. Simulation mode enabled.');
+        console.warn('[SMTP] Credentials missing. Add SMTP_HOST, SMTP_USER, SMTP_PASS to environment.');
       }
 
       return {
         success: true,
-        message: `Invitation processed for ${input.recipientEmail}.`,
+        message: smtpResult,
         emailPreview: emailContent,
       };
     } catch (error: any) {

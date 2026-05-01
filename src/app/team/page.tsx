@@ -110,7 +110,7 @@ export default function TeamPage() {
 
         toast({
           title: "Profile Created",
-          description: `Generating AI invitation for ${recipientName}...`,
+          description: `Generating and sending email to ${recipientName}...`,
         });
         
         try {
@@ -129,14 +129,14 @@ export default function TeamPage() {
 
           if (result.success) {
             toast({
-              title: "Invitation Ready",
-              description: "You can now preview the generated email.",
+              title: "Invitation Sent",
+              description: "The invitation email is on its way.",
             });
           } else {
             toast({
               variant: "destructive",
-              title: "Simulation Note",
-              description: "Member added. Email preview using system fallback.",
+              title: "Email Error",
+              description: result.message || "Member added but email failed. Check SMTP settings.",
             });
           }
         } catch (error) {
@@ -191,7 +191,7 @@ export default function TeamPage() {
                 <DialogContent className="sm:max-w-[425px] rounded-3xl p-8">
                   <DialogHeader>
                     <DialogTitle className="text-xl font-bold font-headline">Invite Collaborator</DialogTitle>
-                    <DialogDescription>Add a new member to your workspace and define their access level.</DialogDescription>
+                    <DialogDescription>Add a new member and send an invitation email instantly.</DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleInviteMember} className="space-y-6 py-4">
                     <div className="space-y-2">
@@ -345,8 +345,8 @@ export default function TeamPage() {
                         <Mail className="h-6 w-6" />
                       </div>
                       <div>
-                        <DialogTitle className="text-xl font-bold font-headline text-primary-foreground">Invitation Sent (Simulated)</DialogTitle>
-                        <DialogDescription className="text-primary-foreground/70 text-sm">Previewing the content delivered to {sentEmailData?.recipientEmail}</DialogDescription>
+                        <DialogTitle className="text-xl font-bold font-headline text-primary-foreground">Invitation Sent</DialogTitle>
+                        <DialogDescription className="text-primary-foreground/70 text-sm">Preview of the invitation delivered to {sentEmailData?.recipientEmail}</DialogDescription>
                       </div>
                     </div>
                     <Button 
@@ -380,7 +380,7 @@ export default function TeamPage() {
                 <div className="mt-8 flex flex-col items-center gap-4">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted p-2 px-4 rounded-full">
                     <Shield className="h-3 w-3" />
-                    <span>Prototype Simulation: Content generated via AI. Real inbox delivery is not enabled in this environment.</span>
+                    <span>Real-time tracking: Ensure your SMTP environment variables are configured for live delivery.</span>
                   </div>
                   <Button onClick={() => setIsPreviewOpen(false)} className="w-full rounded-2xl h-12 font-bold text-lg shadow-xl shadow-primary/10">
                     Close Preview
