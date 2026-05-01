@@ -28,6 +28,7 @@ export type SendInvitationEmailOutput = z.infer<typeof SendInvitationEmailOutput
 
 const prompt = ai.definePrompt({
   name: 'invitationEmailPrompt',
+  model: 'googleai/gemini-1.5-pro',
   input: { schema: SendInvitationEmailInputSchema },
   output: { 
     schema: z.object({
@@ -62,14 +63,12 @@ const sendInvitationEmailFlow = ai.defineFlow(
   },
   async (input) => {
     try {
-      // Execute the prompt with the input using the global ai config
       const { output } = await prompt(input);
       const emailContent = output?.emailBody || `Hi ${input.recipientName}, you've been invited to join ${input.workspaceName} by ${input.inviterName}. We look forward to working with you!`;
 
       let smtpResult = "SMTP not configured. Add SMTP_HOST, SMTP_USER, SMTP_PASS to environment variables for live delivery.";
       let deliverySuccess = false;
 
-      // Real SMTP delivery if configured
       if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
         try {
           const transporter = nodemailer.createTransport({
