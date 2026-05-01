@@ -3,35 +3,13 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     /**
-     * WORKLINK SECURITY MODEL
-     * Permissive read/write for all authenticated users to facilitate rapid prototyping
-     * and collaborative team management (invitations, task assignments).
+     * WORKLINK PROTOTYPE SECURITY RULES
+     * Allows full read and write access to all authenticated users.
+     * This ensures listeners and AI flows can operate without permission failures
+     * during development and prototyping.
      */
-
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    // Explicitly allow access to core collections for any signed-in user
-    match /users/{userId} {
-      allow read: if isSignedIn();
-      // Allow any signed-in user to create/update profiles (supports invitations and self-signup)
-      allow write: if isSignedIn();
-    }
-
-    match /projects/{projectId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
-    }
-
-    match /tasks/{taskId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
-    }
-
-    // Fallback for any other collection or nested path
     match /{document=**} {
-      allow read, write: if isSignedIn();
+      allow read, write: if request.auth != null;
     }
   }
 }

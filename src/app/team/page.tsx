@@ -98,7 +98,6 @@ export default function TeamPage() {
       updatedAt: new Date().toISOString(),
     };
 
-    // First save to database, then generate email
     setDoc(doc(db, 'users', inviteId), userData)
       .then(async () => {
         const recipientEmail = newUserEmail;
@@ -122,36 +121,31 @@ export default function TeamPage() {
             workspaceName: "WorkLink"
           });
           
+          setSentEmailData({
+            recipientEmail: recipientEmail,
+            content: result.emailPreview || `Hi ${recipientName}, you have been invited to join WorkLink.`
+          });
+          setIsPreviewOpen(true);
+
           if (result.success) {
-            setSentEmailData({
-              recipientEmail: recipientEmail,
-              content: result.emailPreview
-            });
-            setIsPreviewOpen(true);
             toast({
               title: "Invitation Ready",
               description: "You can now preview the generated email.",
             });
           } else {
-            // Fallback if AI generation failed but we still want to show a preview
-            setSentEmailData({
-              recipientEmail: recipientEmail,
-              content: result.emailPreview || `Hi ${recipientName}, you've been invited to join WorkLink.`
-            });
-            setIsPreviewOpen(true);
             toast({
               variant: "destructive",
-              title: "AI Generation Delayed",
-              description: "Member added with default invitation.",
+              title: "Simulation Note",
+              description: "Member added. Email preview using system fallback.",
             });
           }
         } catch (error) {
           console.error("AI Generation failed:", error);
-          toast({
-            variant: "destructive",
-            title: "System Busy",
-            description: "Member added, but invitation preview is unavailable.",
+          setSentEmailData({
+            recipientEmail: recipientEmail,
+            content: `Hi ${recipientName}, you've been invited to join WorkLink by ${currentUser?.displayName || 'an admin'}.`
           });
+          setIsPreviewOpen(true);
         }
       })
       .catch(async (err) => {
@@ -341,7 +335,6 @@ export default function TeamPage() {
             )}
           </main>
 
-          {/* Email Simulation Preview Dialog */}
           <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
             <DialogContent className="sm:max-w-[600px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
               <div className="bg-primary p-8 text-primary-foreground relative">
@@ -352,8 +345,8 @@ export default function TeamPage() {
                         <Mail className="h-6 w-6" />
                       </div>
                       <div>
-                        <DialogTitle className="text-xl font-bold font-headline text-primary-foreground">Invitation Generated</DialogTitle>
-                        <DialogDescription className="text-primary-foreground/70 text-sm">Previewing the generated message</DialogDescription>
+                        <DialogTitle className="text-xl font-bold font-headline text-primary-foreground">Invitation Sent (Simulated)</DialogTitle>
+                        <DialogDescription className="text-primary-foreground/70 text-sm">Previewing the content delivered to {sentEmailData?.recipientEmail}</DialogDescription>
                       </div>
                     </div>
                     <Button 
@@ -387,10 +380,10 @@ export default function TeamPage() {
                 <div className="mt-8 flex flex-col items-center gap-4">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted p-2 px-4 rounded-full">
                     <Shield className="h-3 w-3" />
-                    <span>Prototype Simulation: In production, this would be delivered via a real SMTP service.</span>
+                    <span>Prototype Simulation: Content generated via AI. Real inbox delivery is not enabled in this environment.</span>
                   </div>
                   <Button onClick={() => setIsPreviewOpen(false)} className="w-full rounded-2xl h-12 font-bold text-lg shadow-xl shadow-primary/10">
-                    Looks Good
+                    Close Preview
                   </Button>
                 </div>
               </div>
