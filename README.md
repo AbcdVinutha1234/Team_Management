@@ -1,4 +1,4 @@
-#Team Task Manager – Full Stack Web Application
+**#Team Task Manager – Full Stack Web Application**
 
 Tech Stack:
 
