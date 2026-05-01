@@ -44,7 +44,7 @@ export default function TeamPage() {
 
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [sentEmailData, setSentEmailData] = useState<{ recipientEmail: string; content: string } | null>(null);
+  const [sentEmailData, setSentEmailData] = useState<{ recipientEmail: string; content: string; status: string } | null>(null);
   
   const [newUserName, setNewUserName] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
@@ -110,7 +110,7 @@ export default function TeamPage() {
 
         toast({
           title: "Profile Created",
-          description: `Generating and sending email to ${recipientName}...`,
+          description: `Generating professional invitation email...`,
         });
         
         try {
@@ -123,27 +123,29 @@ export default function TeamPage() {
           
           setSentEmailData({
             recipientEmail: recipientEmail,
-            content: result.emailPreview || `Hi ${recipientName}, you have been invited to join WorkLink.`
+            content: result.emailPreview,
+            status: result.message
           });
           setIsPreviewOpen(true);
 
           if (result.success) {
             toast({
               title: "Invitation Sent",
-              description: "The invitation email is on its way.",
+              description: "The invitation email is being delivered via SMTP.",
             });
           } else {
             toast({
               variant: "destructive",
-              title: "Email Error",
-              description: result.message || "Member added but email failed. Check SMTP settings.",
+              title: "Delivery Notice",
+              description: result.message || "Invitation generated but SMTP delivery failed.",
             });
           }
         } catch (error) {
           console.error("AI Generation failed:", error);
           setSentEmailData({
             recipientEmail: recipientEmail,
-            content: `Hi ${recipientName}, you've been invited to join WorkLink by ${currentUser?.displayName || 'an admin'}.`
+            content: `Hi ${recipientName}, you've been invited to join WorkLink by ${currentUser?.displayName || 'an admin'}.`,
+            status: "Internal processing error."
           });
           setIsPreviewOpen(true);
         }
@@ -191,7 +193,7 @@ export default function TeamPage() {
                 <DialogContent className="sm:max-w-[425px] rounded-3xl p-8">
                   <DialogHeader>
                     <DialogTitle className="text-xl font-bold font-headline">Invite Collaborator</DialogTitle>
-                    <DialogDescription>Add a new member and send an invitation email instantly.</DialogDescription>
+                    <DialogDescription>Add a new member and send a professional invitation email instantly.</DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleInviteMember} className="space-y-6 py-4">
                     <div className="space-y-2">
@@ -345,8 +347,8 @@ export default function TeamPage() {
                         <Mail className="h-6 w-6" />
                       </div>
                       <div>
-                        <DialogTitle className="text-xl font-bold font-headline text-primary-foreground">Invitation Sent</DialogTitle>
-                        <DialogDescription className="text-primary-foreground/70 text-sm">Preview of the invitation delivered to {sentEmailData?.recipientEmail}</DialogDescription>
+                        <DialogTitle className="text-xl font-bold font-headline text-primary-foreground">Live Invitation Preview</DialogTitle>
+                        <DialogDescription className="text-primary-foreground/70 text-sm">Review the content delivered to {sentEmailData?.recipientEmail}</DialogDescription>
                       </div>
                     </div>
                     <Button 
@@ -362,8 +364,8 @@ export default function TeamPage() {
                 
                 <div className="space-y-2 text-sm bg-white/10 p-4 rounded-2xl border border-white/10">
                   <p><span className="opacity-60 font-medium">To:</span> {sentEmailData?.recipientEmail}</p>
-                  <p><span className="opacity-60 font-medium">From:</span> WorkLink Assistant &lt;no-reply@worklink.ai&gt;</p>
-                  <p><span className="opacity-60 font-medium">Subject:</span> You've been invited to join the WorkLink workspace</p>
+                  <p><span className="opacity-60 font-medium">Delivery Status:</span> <span className="font-bold uppercase tracking-wider text-[10px] bg-white/20 px-2 py-0.5 rounded ml-1">{sentEmailData?.status}</span></p>
+                  <p><span className="opacity-60 font-medium">Subject:</span> Join the WorkLink Workspace</p>
                 </div>
               </div>
 
@@ -380,7 +382,7 @@ export default function TeamPage() {
                 <div className="mt-8 flex flex-col items-center gap-4">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted p-2 px-4 rounded-full">
                     <Shield className="h-3 w-3" />
-                    <span>Real-time tracking: Ensure your SMTP environment variables are configured for live delivery.</span>
+                    <span>Live delivery relies on your SMTP credentials. Check server logs for detailed transmission status.</span>
                   </div>
                   <Button onClick={() => setIsPreviewOpen(false)} className="w-full rounded-2xl h-12 font-bold text-lg shadow-xl shadow-primary/10">
                     Close Preview

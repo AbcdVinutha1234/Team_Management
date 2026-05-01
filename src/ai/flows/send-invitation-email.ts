@@ -67,34 +67,40 @@ const sendInvitationEmailFlow = ai.defineFlow(
       const emailContent = output?.emailBody || `Hi ${input.recipientName}, you've been invited to join ${input.workspaceName} by ${input.inviterName}. We look forward to working with you!`;
 
       let smtpResult = "SMTP not configured.";
+      let deliverySuccess = true;
 
       // Check if SMTP is configured
       if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-        const transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST,
-          port: Number(process.env.SMTP_PORT) || 587,
-          secure: process.env.SMTP_SECURE === 'true',
-          auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-          },
-        });
+        try {
+          const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: Number(process.env.SMTP_PORT) || 587,
+            secure: process.env.SMTP_SECURE === 'true',
+            auth: {
+              user: process.env.SMTP_USER,
+              pass: process.env.SMTP_PASS,
+            },
+          });
 
-        await transporter.sendMail({
-          from: process.env.SMTP_FROM || '"WorkLink" <invites@worklink.ai>',
-          to: input.recipientEmail,
-          subject: `Join ${input.workspaceName}`,
-          text: emailContent,
-        });
-        
-        smtpResult = `Invitation successfully delivered to ${input.recipientEmail}.`;
-        console.log(`[SMTP] ${smtpResult}`);
+          await transporter.sendMail({
+            from: process.env.SMTP_FROM || '"WorkLink" <invites@worklink.ai>',
+            to: input.recipientEmail,
+            subject: `Join ${input.workspaceName}`,
+            text: emailContent,
+          });
+          
+          smtpResult = `Invitation successfully delivered to ${input.recipientEmail}.`;
+        } catch (smtpError: any) {
+          deliverySuccess = false;
+          smtpResult = `SMTP Error: ${smtpError.message}`;
+          console.error('[SMTP] Failed to send email:', smtpError);
+        }
       } else {
         console.warn('[SMTP] Credentials missing. Add SMTP_HOST, SMTP_USER, SMTP_PASS to environment.');
       }
 
       return {
-        success: true,
+        success: deliverySuccess,
         message: smtpResult,
         emailPreview: emailContent,
       };
@@ -103,7 +109,7 @@ const sendInvitationEmailFlow = ai.defineFlow(
       return {
         success: false,
         message: `Failed to process invitation: ${error.message || 'Unknown error'}`,
-        emailPreview: `Hi ${input.recipientName}, you have been invited to join ${input.workspaceName}. (System fallback message)`,
+        emailPreview: `Hi ${input.recipientName}, you have been invited to join ${input.workspaceName} by ${input.inviterName}. (System fallback message)`,
       };
     }
   }
