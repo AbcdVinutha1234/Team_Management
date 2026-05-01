@@ -27,30 +27,30 @@ export default function DashboardPage() {
   }, []);
 
   const priorityTasksQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
+    if (!db || !user || !isMounted) return null;
     return query(
       collection(db, "tasks"),
       where("assignedToId", "==", user.uid),
       where("status", "in", ["To Do", "In Progress"]),
       limit(5)
     );
-  }, [db, user?.uid]);
+  }, [db, user?.uid, isMounted]);
 
   const allTasksQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
+    if (!db || !user || !isMounted) return null;
     return query(
       collection(db, "tasks"), 
       where("assignedToId", "==", user.uid)
     );
-  }, [db, user?.uid]);
+  }, [db, user?.uid, isMounted]);
 
   const projectsQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
+    if (!db || !user || !isMounted) return null;
     return query(
       collection(db, "projects"), 
       where(`members.${user.uid}`, "!=", null)
     );
-  }, [db, user?.uid]);
+  }, [db, user?.uid, isMounted]);
 
   const { data: priorityTasks, isLoading: tasksLoading } = useCollection<Task>(priorityTasksQuery);
   const { data: allTasks } = useCollection<Task>(allTasksQuery);
@@ -78,7 +78,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-4">
               <div className="relative hidden md:flex items-center">
                 <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search tasks..." className="pl-10 w-64 bg-muted/30 border-none focus-visible:ring-1" />
+                <Input placeholder="Search tasks..." className="pl-10 w-64 bg-muted/30 border-none focus-visible:ring-1" suppressHydrationWarning />
               </div>
               <Button variant="ghost" size="icon" className="rounded-full relative">
                 <Bell className="h-5 w-5" />

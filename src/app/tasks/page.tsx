@@ -24,12 +24,12 @@ export default function TasksPage() {
   }, []);
 
   const tasksQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
+    if (!db || !user || !isMounted) return null;
     return query(
       collection(db, "tasks"), 
       where("assignedToId", "==", user.uid)
     );
-  }, [db, user?.uid]);
+  }, [db, user?.uid, isMounted]);
 
   const { data: tasks, isLoading } = useCollection<Task>(tasksQuery);
 

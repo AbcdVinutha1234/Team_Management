@@ -32,8 +32,8 @@ service cloud.firestore {
 
     match /projects/{projectId} {
       // Allow listing projects if signed in. 
-      // Users will typically query projects where they are members.
       allow list: if isSignedIn();
+      // Allow getting a specific project if the user is a member.
       allow get: if isSignedIn() && isMember(resource.data.members);
       allow create: if isSignedIn();
       allow update: if isSignedIn() && isAdmin(resource.data.members);
@@ -41,7 +41,10 @@ service cloud.firestore {
 
       match /memberships/{mUserId} {
         allow get, list: if isSignedIn();
-        allow create, update, delete: if isSignedIn() && isAdmin(request.resource.data.projectMembers);
+        allow create, update, delete: if isSignedIn() && (
+          isAdmin(request.resource.data.projectMembers) || 
+          isAdmin(resource.data.projectMembers)
+        );
       }
     }
 
