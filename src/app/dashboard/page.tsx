@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -45,11 +44,9 @@ export default function DashboardPage() {
     );
   }, [db, user?.uid, isMounted]);
 
-  // Stable query for projects where user is a member or creator
+  // Stable query for projects
   const projectsQuery = useMemoFirebase(() => {
     if (!db || !user?.uid || !isMounted) return null;
-    // Listing all projects for now as security rules are broad, 
-    // but in a strict app we would use where("members." + user.uid, "!=", null)
     return query(
       collection(db, "projects"),
       limit(20)

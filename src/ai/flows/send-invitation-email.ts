@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A Genkit flow that handles generating professional invitation emails and sending them via SMTP.
@@ -63,13 +62,14 @@ const sendInvitationEmailFlow = ai.defineFlow(
   },
   async (input) => {
     try {
+      // Execute the prompt with the input
       const { output } = await prompt(input);
       const emailContent = output?.emailBody || `Hi ${input.recipientName}, you've been invited to join ${input.workspaceName} by ${input.inviterName}. We look forward to working with you!`;
 
       let smtpResult = "SMTP not configured.";
       let deliverySuccess = true;
 
-      // Check if SMTP is configured
+      // Real SMTP delivery if configured
       if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
         try {
           const transporter = nodemailer.createTransport({
@@ -92,11 +92,8 @@ const sendInvitationEmailFlow = ai.defineFlow(
           smtpResult = `Invitation successfully delivered to ${input.recipientEmail}.`;
         } catch (smtpError: any) {
           deliverySuccess = false;
-          smtpResult = `SMTP Error: ${smtpError.message}`;
-          console.error('[SMTP] Failed to send email:', smtpError);
+          smtpResult = `SMTP Delivery Error: ${smtpError.message}`;
         }
-      } else {
-        console.warn('[SMTP] Credentials missing. Add SMTP_HOST, SMTP_USER, SMTP_PASS to environment.');
       }
 
       return {
@@ -105,10 +102,9 @@ const sendInvitationEmailFlow = ai.defineFlow(
         emailPreview: emailContent,
       };
     } catch (error: any) {
-      console.error('Genkit invitation flow error:', error);
       return {
         success: false,
-        message: `Failed to process invitation: ${error.message || 'Unknown error'}`,
+        message: `AI Generation failed: ${error.message || 'Unknown error'}`,
         emailPreview: `Hi ${input.recipientName}, you have been invited to join ${input.workspaceName} by ${input.inviterName}. (System fallback message)`,
       };
     }
