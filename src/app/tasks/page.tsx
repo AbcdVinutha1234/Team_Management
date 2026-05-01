@@ -8,16 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Calendar, Clock, CheckCircle2, Circle, Loader2, Target } from "lucide-react";
+import { Calendar, Clock, CheckCircle2, Circle, Loader2, Target, AlertCircle } from "lucide-react";
 import { CreateTaskModal } from "@/components/tasks/create-task-modal";
 import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where } from "firebase/firestore";
+import { collection, query, where, orderBy } from "firebase/firestore";
 import { Task } from "@/lib/types";
 
 export default function TasksPage() {
   const [isMounted, setIsMounted] = useState(false);
-  const db = useFirestore();
   const { user, isUserLoading } = useUser();
+  const db = useFirestore();
 
   useEffect(() => {
     setIsMounted(true);
@@ -27,11 +27,12 @@ export default function TasksPage() {
     if (!db || !user || !isMounted) return null;
     return query(
       collection(db, "tasks"), 
-      where("assignedToId", "==", user.uid)
+      where("assignedToId", "==", user.uid),
+      orderBy("createdAt", "desc")
     );
   }, [db, user?.uid, isMounted]);
 
-  const { data: tasks, isLoading } = useCollection<Task>(tasksQuery);
+  const { data: tasks, isLoading, error } = useCollection<Task>(tasksQuery);
 
   if (!isMounted || isUserLoading) {
     return (
@@ -49,7 +50,7 @@ export default function TasksPage() {
           <header className="flex h-20 shrink-0 items-center justify-between px-8 bg-background border-b sticky top-0 z-10">
             <div className="flex items-center gap-4">
               <SidebarTrigger />
-              <h1 className="text-2xl font-bold font-headline tracking-tight">My Tasks</h1>
+              <h1 className="text-2xl font-bold font-headline tracking-tight text-primary">Task Center</h1>
             </div>
             
             <div className="flex items-center gap-3">
@@ -68,7 +69,7 @@ export default function TasksPage() {
                 </TabsList>
                 
                 <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
-                  <span className="px-3 py-1 bg-white border rounded-full shadow-sm">Real-time sync active</span>
+                  <span className="px-3 py-1 bg-white border rounded-full shadow-sm">Sync Active</span>
                 </div>
               </div>
 
@@ -77,6 +78,12 @@ export default function TasksPage() {
                   <div className="flex items-center justify-center py-20">
                     <Loader2 className="h-10 w-10 animate-spin text-primary/40" />
                   </div>
+                ) : error ? (
+                   <div className="flex flex-col items-center justify-center py-20 text-destructive gap-2">
+                    <AlertCircle className="h-10 w-10" />
+                    <p className="font-bold">Error loading tasks</p>
+                    <p className="text-sm opacity-80">Please check your permissions and try again.</p>
+                  </div>
                 ) : tasks && tasks.length > 0 ? (
                   <div className="grid grid-cols-1 gap-4">
                     {tasks.map((task) => {
@@ -84,7 +91,7 @@ export default function TasksPage() {
                       const isOverdue = dueDate && dueDate < new Date() && task.status !== "Done";
                       
                       return (
-                        <Card key={task.id} className="border-none shadow-sm hover:shadow-md transition-all duration-200 rounded-3xl overflow-hidden group">
+                        <Card key={task.id} className="border-none shadow-sm hover:shadow-md transition-all duration-200 rounded-3xl overflow-hidden group bg-white">
                           <CardContent className="p-0">
                             <div className="flex flex-col md:flex-row md:items-center gap-6 p-6">
                               <div className="flex-shrink-0">
@@ -103,9 +110,14 @@ export default function TasksPage() {
                                 )}
                               </div>
                               
-                              <div className="flex-1 space-y-2">
+                              <div className="flex-1 space-y-1">
                                 <div className="flex items-center justify-between">
                                   <h3 className="font-bold text-lg group-hover:text-primary transition-colors">{task.title}</h3>
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter ${
+                                    task.priority === "Critical" ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
+                                  }`}>
+                                    {task.priority}
+                                  </span>
                                 </div>
                                 <p className="text-sm text-muted-foreground line-clamp-1">{task.description}</p>
                               </div>
@@ -118,14 +130,12 @@ export default function TasksPage() {
                                   </span>
                                 </div>
                                 
-                                <div className="flex items-center gap-2">
-                                  <Avatar className="h-8 w-8 border border-background">
-                                    <AvatarImage src={`https://picsum.photos/seed/${task.assignedToId}/100/100`} />
-                                    <AvatarFallback>U</AvatarFallback>
-                                  </Avatar>
-                                </div>
+                                <Avatar className="h-8 w-8 border border-background shadow-sm">
+                                  <AvatarImage src={`https://picsum.photos/seed/${task.assignedToId}/100/100`} />
+                                  <AvatarFallback>U</AvatarFallback>
+                                </Avatar>
                                 
-                                <Button variant="ghost" className="rounded-xl font-bold text-primary">Edit</Button>
+                                <Button variant="ghost" className="rounded-xl font-bold text-primary hover:bg-primary/5">Details</Button>
                               </div>
                             </div>
                           </CardContent>
@@ -139,8 +149,8 @@ export default function TasksPage() {
                       <Target className="h-12 w-12 text-primary/40" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold font-headline">No tasks yet</h3>
-                      <p className="text-muted-foreground max-w-sm mx-auto">Create a task to get started with your project.</p>
+                      <h3 className="text-xl font-bold font-headline">No tasks assigned</h3>
+                      <p className="text-muted-foreground max-w-sm mx-auto">Tasks assigned to you will appear here.</p>
                     </div>
                     <CreateTaskModal />
                   </div>
@@ -149,11 +159,12 @@ export default function TasksPage() {
               
               {["todo", "in-progress", "done"].map((statusValue) => (
                 <TabsContent key={statusValue} value={statusValue} className="m-0">
-                  <div className="flex flex-col items-center justify-center py-20 text-muted-foreground space-y-4 bg-white/50 rounded-3xl border-2 border-dashed border-muted/50">
+                  <div className="flex flex-col items-center justify-center py-24 text-muted-foreground space-y-4 bg-white/50 rounded-3xl border-2 border-dashed border-muted/50">
                     <div className="p-4 bg-muted/50 rounded-full">
                       <Target className="h-10 w-10 opacity-20" />
                     </div>
-                    <p className="font-medium">Filter view updated automatically</p>
+                    <p className="font-medium">Filter views coming soon</p>
+                    <p className="text-sm max-w-xs text-center">Use the "All Tasks" view for a complete list of your responsibilities.</p>
                   </div>
                 </TabsContent>
               ))}
