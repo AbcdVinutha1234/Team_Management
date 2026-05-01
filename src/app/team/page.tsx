@@ -9,10 +9,11 @@ import { Mail, Shield, MoreVertical, Search, UserPlus, Loader2 } from "lucide-re
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, setDoc, deleteDoc, query, orderBy } from "firebase/firestore";
 import { User } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
+import { sendInvitationEmail } from "@/ai/flows/send-invitation-email";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +38,7 @@ export default function TeamPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
   const db = useFirestore();
+  const { user: currentUser } = useUser();
 
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [newUserName, setNewUserName] = useState("");
@@ -92,11 +94,34 @@ export default function TeamPage() {
     };
 
     setDoc(doc(db, 'users', inviteId), userData)
-      .then(() => {
+      .then(async () => {
         toast({
-          title: "Invitation recorded",
-          description: `User ${newUserName} added to workspace.`,
+          title: "Member Added",
+          description: `User ${newUserName} added to workspace. Sending email...`,
         });
+        
+        // Trigger the Genkit Flow to "send" the invitation email
+        try {
+          await sendInvitationEmail({
+            recipientName: newUserName,
+            recipientEmail: newUserEmail,
+            inviterName: currentUser?.displayName || currentUser?.email || "A workspace admin",
+            workspaceName: "WorkLink"
+          });
+          
+          toast({
+            title: "Email Sent",
+            description: `Invitation email has been delivered to ${newUserEmail}.`,
+          });
+        } catch (error) {
+          console.error("Failed to send invitation email:", error);
+          toast({
+            variant: "destructive",
+            title: "Email Failed",
+            description: "Member was added, but the invitation email could not be sent.",
+          });
+        }
+
         setIsInviteModalOpen(false);
         setNewUserName("");
         setNewUserEmail("");
