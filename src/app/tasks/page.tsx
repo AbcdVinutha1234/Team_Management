@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Calendar, Clock, CheckCircle2, Circle, Loader2, Target, AlertCircle } from "lucide-react";
 import { CreateTaskModal } from "@/components/tasks/create-task-modal";
 import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, orderBy } from "firebase/firestore";
+import { collection, query, where } from "firebase/firestore";
 import { Task } from "@/lib/types";
 
 export default function TasksPage() {
@@ -27,8 +27,7 @@ export default function TasksPage() {
     if (!db || !user || !isMounted) return null;
     return query(
       collection(db, "tasks"), 
-      where("assignedToId", "==", user.uid),
-      orderBy("createdAt", "desc")
+      where("assignedToId", "==", user.uid)
     );
   }, [db, user?.uid, isMounted]);
 

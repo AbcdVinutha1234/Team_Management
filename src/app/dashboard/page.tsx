@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { CreateTaskModal } from "@/components/tasks/create-task-modal";
 import { CreateProjectModal } from "@/components/projects/create-project-modal";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, limit, orderBy } from "firebase/firestore";
+import { collection, query, where, limit } from "firebase/firestore";
 import { Task, Project } from "@/lib/types";
 import Link from "next/link";
 

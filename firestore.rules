@@ -31,16 +31,21 @@ service cloud.firestore {
     }
 
     match /projects/{projectId} {
+      // Allow listing projects if signed in. Queries should still be filtered for membership.
       allow list: if isSignedIn();
+      
       allow get: if isSignedIn() && (
         resource.data.createdBy == request.auth.uid || 
         isMember(resource.data.members)
       );
+      
       allow create: if isSignedIn();
+      
       allow update: if isSignedIn() && (
         resource.data.createdBy == request.auth.uid || 
         isAdmin(resource.data.members)
       );
+      
       allow delete: if isSignedIn() && (
         resource.data.createdBy == request.auth.uid || 
         isAdmin(resource.data.members)
@@ -57,12 +62,11 @@ service cloud.firestore {
     }
 
     match /tasks/{taskId} {
-      // Allow listing tasks if signed in. 
-      // Firestore will enforce that the query filters match the get/read requirements.
+      // Allow listing tasks if signed in.
       allow list: if isSignedIn();
       
-      // Explicit read rule covering both get and list item evaluation.
-      allow read: if isSignedIn() && (
+      // Explicit get rule covering individual document evaluation.
+      allow get: if isSignedIn() && (
         resource.data.assignedToId == request.auth.uid || 
         resource.data.createdBy == request.auth.uid ||
         isMember(resource.data.projectMembers)
