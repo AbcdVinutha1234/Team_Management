@@ -48,7 +48,7 @@ export default function DashboardPage() {
     if (!db || !user?.uid || !isMounted) return null;
     return query(
       collection(db, "projects"), 
-      where(`members.${user.uid}`, "!=", null)
+      where(`members.${user.uid}`, ">", "")
     );
   }, [db, user?.uid, isMounted]);
 
@@ -72,7 +72,7 @@ export default function DashboardPage() {
           <header className="flex h-20 shrink-0 items-center justify-between px-8 bg-background border-b sticky top-0 z-10">
             <div className="flex items-center gap-4">
               <SidebarTrigger />
-              <h1 className="text-2xl font-bold font-headline tracking-tight">Personal Dashboard</h1>
+              <h1 className="text-2xl font-bold font-headline tracking-tight text-primary">Personal Dashboard</h1>
             </div>
             
             <div className="flex items-center gap-4">

@@ -5,7 +5,7 @@ service cloud.firestore {
 
     /**
      * WORKLINK SECURITY MODEL
-     * Updated to provide robust permissions for real-time listing and document access.
+     * Updated to ensure robust permissions for authenticated queries.
      */
 
     function isSignedIn() {
@@ -21,19 +21,20 @@ service cloud.firestore {
     }
 
     function isAdmin(memberMap) {
-      return isSignedIn() && memberMap != null && (memberMap[request.auth.uid] == 'Admin' || memberMap[request.auth.uid] == 'Owner');
+      const role = memberMap[request.auth.uid];
+      return isSignedIn() && (role == 'Admin' || role == 'Owner');
     }
 
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isOwner(userId);
       allow update: if isOwner(userId);
       allow delete: if false; 
     }
 
     match /projects/{projectId} {
-      // Allow signed-in users to list and get projects.
-      // Privacy is maintained by membership filters in the application queries.
+      // Allow signed-in users to list/get projects. 
+      // Filtered views handled in-app by membership.
       allow read: if isSignedIn();
       
       allow create: if isSignedIn();
@@ -55,10 +56,8 @@ service cloud.firestore {
     }
 
     match /tasks/{taskId} {
-      // Explicitly allow list and get for authenticated users.
-      // This supports real-time queries filtered by assignedToId or projectId.
-      allow list: if isSignedIn();
-      allow get: if isSignedIn();
+      // Simplified read permission for authenticated users to support all query patterns.
+      allow read: if isSignedIn();
       
       allow create: if isSignedIn();
       
@@ -69,8 +68,8 @@ service cloud.firestore {
       );
       
       allow delete: if isSignedIn() && (
-        isAdmin(resource.data.projectMembers) || 
-        resource.data.createdBy == request.auth.uid
+        resource.data.createdBy == request.auth.uid ||
+        isAdmin(resource.data.projectMembers)
       );
     }
   }
