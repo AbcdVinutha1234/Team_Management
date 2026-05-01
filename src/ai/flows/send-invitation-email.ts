@@ -66,8 +66,8 @@ const sendInvitationEmailFlow = ai.defineFlow(
       const { output } = await prompt(input);
       const emailContent = output?.emailBody || `Hi ${input.recipientName}, you've been invited to join ${input.workspaceName} by ${input.inviterName}. We look forward to working with you!`;
 
-      let smtpResult = "SMTP not configured.";
-      let deliverySuccess = true;
+      let smtpResult = "SMTP not configured. Add SMTP_HOST, SMTP_USER, SMTP_PASS to environment variables for live delivery.";
+      let deliverySuccess = false;
 
       // Real SMTP delivery if configured
       if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
@@ -90,9 +90,11 @@ const sendInvitationEmailFlow = ai.defineFlow(
           });
           
           smtpResult = `Invitation successfully delivered to ${input.recipientEmail}.`;
+          deliverySuccess = true;
         } catch (smtpError: any) {
           deliverySuccess = false;
           smtpResult = `SMTP Delivery Error: ${smtpError.message}`;
+          console.error("SMTP Transmission Error:", smtpError);
         }
       }
 
@@ -102,6 +104,7 @@ const sendInvitationEmailFlow = ai.defineFlow(
         emailPreview: emailContent,
       };
     } catch (error: any) {
+      console.error("AI Generation Error:", error);
       return {
         success: false,
         message: `AI Generation failed: ${error.message || 'Unknown error'}`,
