@@ -11,11 +11,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Calendar, Clock, CheckCircle2, Circle, Loader2, Target, AlertCircle } from "lucide-react";
 import { CreateTaskModal } from "@/components/tasks/create-task-modal";
 import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, orderBy } from "firebase/firestore";
+import { collection, query, where } from "firebase/firestore";
 import { Task } from "@/lib/types";
 
 export default function TasksPage() {
   const [isMounted, setIsMounted] = useState(false);
+  const [activeTab, setActiveTab] = useState("all");
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
 
@@ -27,12 +28,19 @@ export default function TasksPage() {
     if (!db || !user?.uid || !isMounted) return null;
     return query(
       collection(db, "tasks"), 
-      where("assignedToId", "==", user.uid),
-      orderBy("createdAt", "desc")
+      where("assignedToId", "==", user.uid)
     );
   }, [db, user?.uid, isMounted]);
 
-  const { data: tasks, isLoading, error } = useCollection<Task>(tasksQuery);
+  const { data: allTasks, isLoading, error } = useCollection<Task>(tasksQuery);
+
+  const filteredTasks = allTasks?.filter(task => {
+    if (activeTab === "all") return true;
+    if (activeTab === "todo") return task.status === "To Do";
+    if (activeTab === "in-progress") return task.status === "In Progress";
+    if (activeTab === "done") return task.status === "Done";
+    return true;
+  }) || [];
 
   if (!isMounted || isUserLoading) {
     return (
@@ -59,7 +67,7 @@ export default function TasksPage() {
           </header>
           
           <main className="flex-1 p-8 max-w-7xl mx-auto w-full">
-            <Tabs defaultValue="all" className="w-full space-y-8">
+            <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full space-y-8">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <TabsList className="bg-muted/50 p-1 rounded-2xl">
                   <TabsTrigger value="all" className="rounded-xl px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm">All Tasks</TabsTrigger>
@@ -69,11 +77,11 @@ export default function TasksPage() {
                 </TabsList>
                 
                 <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
-                  <span className="px-3 py-1 bg-white border rounded-full shadow-sm">Sync Active</span>
+                  <span className="px-3 py-1 bg-white border rounded-full shadow-sm">Real-time Sync</span>
                 </div>
               </div>
 
-              <TabsContent value="all" className="space-y-4 m-0">
+              <TabsContent value={activeTab} className="space-y-4 m-0">
                 {isLoading ? (
                   <div className="flex items-center justify-center py-20">
                     <Loader2 className="h-10 w-10 animate-spin text-primary/40" />
@@ -82,11 +90,11 @@ export default function TasksPage() {
                    <div className="flex flex-col items-center justify-center py-20 text-destructive gap-2 text-center">
                     <AlertCircle className="h-10 w-10" />
                     <p className="font-bold">Error loading tasks</p>
-                    <p className="text-sm opacity-80 max-w-xs">There was an issue accessing your tasks. Please try refreshing the page.</p>
+                    <p className="text-sm opacity-80 max-w-xs">There was an issue accessing your tasks.</p>
                   </div>
-                ) : tasks && tasks.length > 0 ? (
+                ) : filteredTasks.length > 0 ? (
                   <div className="grid grid-cols-1 gap-4">
-                    {tasks.map((task) => {
+                    {filteredTasks.map((task) => {
                       const dueDate = task.dueDate ? new Date(task.dueDate) : null;
                       const isOverdue = dueDate && dueDate < new Date() && task.status !== "Done";
                       
@@ -149,25 +157,13 @@ export default function TasksPage() {
                       <Target className="h-12 w-12 text-primary/40" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold font-headline">No tasks assigned</h3>
+                      <h3 className="text-xl font-bold font-headline">No {activeTab === 'all' ? '' : activeTab} tasks found</h3>
                       <p className="text-muted-foreground max-w-sm mx-auto">Tasks assigned to you will appear here.</p>
                     </div>
                     <CreateTaskModal />
                   </div>
                 )}
               </TabsContent>
-              
-              {["todo", "in-progress", "done"].map((statusValue) => (
-                <TabsContent key={statusValue} value={statusValue} className="m-0">
-                  <div className="flex flex-col items-center justify-center py-24 text-muted-foreground space-y-4 bg-white/50 rounded-3xl border-2 border-dashed border-muted/50">
-                    <div className="p-4 bg-muted/50 rounded-full">
-                      <Target className="h-10 w-10 opacity-20" />
-                    </div>
-                    <p className="font-medium">Filter views coming soon</p>
-                    <p className="text-sm max-w-xs text-center">Use the "All Tasks" view for a complete list of your responsibilities.</p>
-                  </div>
-                </TabsContent>
-              ))}
             </Tabs>
           </main>
         </SidebarInset>

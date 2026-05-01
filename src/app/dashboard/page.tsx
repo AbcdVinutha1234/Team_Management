@@ -26,20 +26,11 @@ export default function DashboardPage() {
     setIsMounted(true);
   }, []);
 
-  const priorityTasksQuery = useMemoFirebase(() => {
+  const tasksQuery = useMemoFirebase(() => {
     if (!db || !user?.uid || !isMounted) return null;
+    // We query all user tasks and filter client-side to avoid index requirements in early dev
     return query(
       collection(db, "tasks"),
-      where("assignedToId", "==", user.uid),
-      where("status", "in", ["To Do", "In Progress"]),
-      limit(5)
-    );
-  }, [db, user?.uid, isMounted]);
-
-  const allTasksQuery = useMemoFirebase(() => {
-    if (!db || !user?.uid || !isMounted) return null;
-    return query(
-      collection(db, "tasks"), 
       where("assignedToId", "==", user.uid)
     );
   }, [db, user?.uid, isMounted]);
@@ -52,9 +43,10 @@ export default function DashboardPage() {
     );
   }, [db, user?.uid, isMounted]);
 
-  const { data: priorityTasks, isLoading: tasksLoading } = useCollection<Task>(priorityTasksQuery);
-  const { data: allTasks } = useCollection<Task>(allTasksQuery);
+  const { data: allTasks, isLoading: tasksLoading } = useCollection<Task>(tasksQuery);
   const { data: projects } = useCollection<Project>(projectsQuery);
+
+  const priorityTasks = allTasks?.filter(t => t.status !== "Done").slice(0, 5) || [];
 
   if (!isMounted || isUserLoading) {
     return (

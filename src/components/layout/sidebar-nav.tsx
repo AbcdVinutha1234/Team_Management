@@ -2,13 +2,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { 
   LayoutDashboard, 
   Briefcase, 
   CheckSquare, 
   Users, 
-  Settings, 
   LogOut,
   Sparkles
 } from "lucide-react";
@@ -26,7 +25,8 @@ import {
   SidebarGroupContent,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useUser } from "@/firebase";
+import { useUser, useAuth } from "@/firebase";
+import { signOut } from "firebase/auth";
 
 const navItems = [
   { title: "Dashboard", icon: LayoutDashboard, url: "/dashboard" },
@@ -37,7 +37,18 @@ const navItems = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { user } = useUser();
+  const auth = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push("/");
+    } catch (error) {
+      console.error("Logout failed", error);
+    }
+  };
 
   return (
     <Sidebar className="border-r border-border">
@@ -89,7 +100,10 @@ export function AppSidebar() {
             <span className="text-sm font-bold truncate">{user?.displayName || 'User'}</span>
             <span className="text-xs text-muted-foreground truncate">{user?.email || 'Active'}</span>
           </div>
-          <button className="ml-auto p-2 text-muted-foreground hover:text-destructive transition-colors">
+          <button 
+            onClick={handleLogout}
+            className="ml-auto p-2 text-muted-foreground hover:text-destructive transition-colors"
+          >
             <LogOut className="h-4 w-4" />
           </button>
         </div>

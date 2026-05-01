@@ -12,7 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CreateProjectModal } from "@/components/projects/create-project-modal";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
+import { collection, query } from "firebase/firestore";
 import { Project } from "@/lib/types";
 
 export default function ProjectsPage() {
@@ -25,7 +25,7 @@ export default function ProjectsPage() {
 
   const projectsQuery = useMemoFirebase(() => {
     if (!isMounted || !db) return null;
-    return query(collection(db, "projects"), orderBy("createdAt", "desc"));
+    return query(collection(db, "projects"));
   }, [isMounted, db]);
 
   const { data: projects, isLoading } = useCollection<Project>(projectsQuery);
