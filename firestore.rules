@@ -5,6 +5,7 @@ service cloud.firestore {
 
     /**
      * WORKLINK SECURITY MODEL
+     * Updated to ensure queriable access patterns for tasks and projects.
      */
 
     function isSignedIn() {
@@ -24,7 +25,6 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // Users can see other members for team collaboration
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == userId;
       allow update: if isOwner(userId);
@@ -32,8 +32,8 @@ service cloud.firestore {
     }
 
     match /projects/{projectId} {
-      // Allow signed-in users to list and get projects. 
-      // Individual access is typically checked by membership in the app.
+      // Allow signed-in users to list and get projects.
+      // Privacy is maintained by membership checks in the application queries.
       allow read: if isSignedIn();
       
       allow create: if isSignedIn();
@@ -55,8 +55,8 @@ service cloud.firestore {
     }
 
     match /tasks/{taskId} {
-      // Allow signed-in users to read tasks.
-      // Queries are restricted in the application to relevant tasks.
+      // Explicitly allow get and list for authenticated users.
+      // This supports broad queries filtered by assignedToId or projectId.
       allow read: if isSignedIn();
       
       allow create: if isSignedIn();

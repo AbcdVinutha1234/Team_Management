@@ -27,7 +27,7 @@ export default function DashboardPage() {
   }, []);
 
   const priorityTasksQuery = useMemoFirebase(() => {
-    if (!db || !user || !isMounted) return null;
+    if (!db || !user?.uid || !isMounted) return null;
     return query(
       collection(db, "tasks"),
       where("assignedToId", "==", user.uid),
@@ -37,7 +37,7 @@ export default function DashboardPage() {
   }, [db, user?.uid, isMounted]);
 
   const allTasksQuery = useMemoFirebase(() => {
-    if (!db || !user || !isMounted) return null;
+    if (!db || !user?.uid || !isMounted) return null;
     return query(
       collection(db, "tasks"), 
       where("assignedToId", "==", user.uid)
@@ -45,7 +45,8 @@ export default function DashboardPage() {
   }, [db, user?.uid, isMounted]);
 
   const projectsQuery = useMemoFirebase(() => {
-    if (!db || !user || !isMounted) return null;
+    if (!db || !user?.uid || !isMounted) return null;
+    // Querying projects where user is a member using the denormalized map
     return query(
       collection(db, "projects"), 
       where(`members.${user.uid}`, "!=", null)
@@ -78,7 +79,11 @@ export default function DashboardPage() {
             <div className="flex items-center gap-4">
               <div className="relative hidden md:flex items-center">
                 <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search tasks..." className="pl-10 w-64 bg-muted/30 border-none focus-visible:ring-1" suppressHydrationWarning />
+                <Input 
+                  placeholder="Search tasks..." 
+                  className="pl-10 w-64 bg-muted/30 border-none focus-visible:ring-1" 
+                  suppressHydrationWarning 
+                />
               </div>
               <Button variant="ghost" size="icon" className="rounded-full relative">
                 <Bell className="h-5 w-5" />

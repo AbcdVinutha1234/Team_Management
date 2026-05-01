@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Calendar, Clock, CheckCircle2, Circle, Loader2, Target, AlertCircle } from "lucide-react";
 import { CreateTaskModal } from "@/components/tasks/create-task-modal";
 import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where } from "firebase/firestore";
+import { collection, query, where, orderBy } from "firebase/firestore";
 import { Task } from "@/lib/types";
 
 export default function TasksPage() {
@@ -24,10 +24,11 @@ export default function TasksPage() {
   }, []);
 
   const tasksQuery = useMemoFirebase(() => {
-    if (!db || !user || !isMounted) return null;
+    if (!db || !user?.uid || !isMounted) return null;
     return query(
       collection(db, "tasks"), 
-      where("assignedToId", "==", user.uid)
+      where("assignedToId", "==", user.uid),
+      orderBy("createdAt", "desc")
     );
   }, [db, user?.uid, isMounted]);
 
@@ -78,10 +79,10 @@ export default function TasksPage() {
                     <Loader2 className="h-10 w-10 animate-spin text-primary/40" />
                   </div>
                 ) : error ? (
-                   <div className="flex flex-col items-center justify-center py-20 text-destructive gap-2">
+                   <div className="flex flex-col items-center justify-center py-20 text-destructive gap-2 text-center">
                     <AlertCircle className="h-10 w-10" />
                     <p className="font-bold">Error loading tasks</p>
-                    <p className="text-sm opacity-80">Please check your permissions and try again.</p>
+                    <p className="text-sm opacity-80 max-w-xs">There was an issue accessing your tasks. Please try refreshing the page.</p>
                   </div>
                 ) : tasks && tasks.length > 0 ? (
                   <div className="grid grid-cols-1 gap-4">
